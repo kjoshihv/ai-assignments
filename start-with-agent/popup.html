@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Stock Analysis with Gemini</title>
+  <style>
+    body {
+      width: 800px;
+      padding: 15px;
+      font-family: Arial, sans-serif;
+    }
+    .input-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    #stockInput {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+    }
+    #output {
+      width: 100%;
+      min-height: 200px;
+      margin-top: 15px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      background-color: #f9f9f9;
+      white-space: pre-wrap;
+      overflow-x: auto;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    .loading {
+      display: none;
+      text-align: center;
+      margin: 10px 0;
+    }
+    /* Analysis Table Styles */
+    .analysis-container {
+      width: 100%;
+      overflow-x: auto;
+      margin-top: 15px;
+    }
+    .analysis-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      background-color: white;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      table-layout: fixed;
+    }
+    .analysis-table th,
+    .analysis-table td {
+      padding: 8px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+    .analysis-table th {
+      background-color: #f5f5f5;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+    .analysis-table tr:hover {
+      background-color: #f9f9f9;
+    }
+    .analysis-table td.positive {
+      color: #4CAF50;
+      font-weight: bold;
+    }
+    .analysis-table td.negative {
+      color: #f44336;
+      font-weight: bold;
+    }
+    .analysis-table td.neutral {
+      color: #757575;
+    }
+    .analysis-table td.negative-neutral {
+      color: #ff9800;
+      font-weight: bold;
+    }
+    /* Column widths */
+    .analysis-table th:nth-child(1),
+    .analysis-table td:nth-child(1) {
+      width: 15%; /* Date column */
+    }
+    .analysis-table th:nth-child(2),
+    .analysis-table td:nth-child(2) {
+      width: 10%; /* Impact column */
+    }
+    .analysis-table th:nth-child(3),
+    .analysis-table td:nth-child(3) {
+      width: 20%; /* Movement column */
+    }
+    .analysis-table th:nth-child(4),
+    .analysis-table td:nth-child(4) {
+      width: 15%; /* Volume column */
+    }
+    .analysis-table th:nth-child(5),
+    .analysis-table td:nth-child(5) {
+      width: 20%; /* Correlation column */
+    }
+    .analysis-table th:nth-child(6),
+    .analysis-table td:nth-child(6) {
+      width: 20%; /* Sentiment column */
+    }
+  </style>
+</head>
+<body>
+  <h2>Stock Analysis with Gemini</h2>
+  <div class="input-group">
+    <label for="stockInput">Enter Stock Symbol:</label>
+    <input type="text" id="stockInput" placeholder="e.g., AAPL, GOOGL, MSFT">
+  </div>
+  <button id="analyze">Analyze Stock</button>
+  <div class="loading" id="loading">Analyzing...</div>
+  <div id="output"></div>
+  <script src="popup.js"></script>
+</body>
+</html> 
