@@ -13,52 +13,13 @@ app = Flask(__name__)
 CORS(app)
 
 # Configure Gemini
-GOOGLE_API_KEY = os.getenv('FLASH_KEY')
-# genai.configure(api_key=GOOGLE_API_KEY)
-# model = genai.GenerativeModel('gemini-pro')
+GOOGLE_API_KEY = os.getenv('YOUR_KEY')
 
 @app.route('/api-key', methods=['GET'])
 def get_api_key():
     """Securely serve the API key to the frontend"""
     return jsonify({'api_key': GOOGLE_API_KEY})
 
-# def validate_response(text):
-#     """
-#     Validate the response using Gemini Flash 2.0
-#     This is a simple example - you can add more complex validation logic here
-#     """
-#     try:
-#         # Example validation prompt
-#         prompt = f"""
-#         Please validate the following text and provide feedback:
-#         {text}
-        
-#         Consider:
-#         1. Grammar and spelling
-#         2. Clarity and coherence
-#         3. Factual accuracy
-#         4. Appropriate tone and style
-#         """
-        
-#         response = model.generate_content(prompt)
-#         return response.text
-#     except Exception as e:
-#         return f"Validation error: {str(e)}"
-
-# @app.route('/validate', methods=['POST'])
-# def validate():
-#     try:
-#         data = request.get_json()
-#         text = data.get('text', '')
-        
-#         if not text:
-#             return jsonify({'error': 'No text provided'}), 400
-            
-#         validation_result = validate_response(text)
-#         return jsonify({'result': validation_result})
-        
-#     except Exception as e:
-#         return jsonify({'error': str(e)}), 500
 
 def extract_dates_from_news(news_data):
     """
@@ -159,7 +120,6 @@ def extract_analysis_data(analysis_text):
 def extract_analysis():
     try:
         data = request.get_json()
-        print(f"data: {data}")
         analysis_text = data.get('analysis_text', '')
         
         if not analysis_text:
