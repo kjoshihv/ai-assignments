@@ -14,7 +14,7 @@ load_dotenv()
 api_key = os.getenv("YOUR_KEY")
 client = genai.Client(api_key=api_key)
 
-max_iterations = 3
+max_iterations = 6
 last_response = None
 iteration = 0
 iteration_response = []
@@ -122,31 +122,49 @@ async def main():
 
                 print("Created system prompt...")
 
-                system_prompt_1 = f""" You are a drawing agent solving problems in iterations. 
-                You can open Microsoft Paint and Draw Rectangles. You can also add text inside rectanble that has been created. You can only use the tools available to you.
+                system_prompt = f"""You are a math agent as well as drawing agent, solving problems in multiple phases each phase has multiple iterations.
+                You have access to various mathematical and drawing tools.
+
 Available tools:
 {tools_description}
 
-You have access to various drawing tools in form of python functions. You can call them to open microsoft paint application, perform drawing operations and add text.
+As a math agent, you can perform mathematical operations and return the result. As a drawing agent, you can open Microsoft Paint and Draw Rectangles. You can also add final math result inside rectangle that has been created. You can only use the tools available to you.
+You can also use the tools to perform mathematical operations. You can also use the tools to perform drawing operations.
+
+In the first phrase you have to perform mathematical operations in an iterative manner, and in the second phrase you have to perform drawing operations in an iterative manner in appropriate sequence.
 
 You must respond with EXACTLY ONE line in one of these formats (no additional text):
 1. For function calls:
    FUNCTION_CALL: function_name|param1|param2|...
-
-2. For final answer:
-    FINAL_ANSWER: [string]
+   
+2. For final answers:
+   FINAL_ANSWER: [number]
 
 Important:
 - When a function returns multiple values, you need to process all of them
+- Only give FINAL_ANSWER when you have completed all necessary mathematical calculations and then ready to add final answer inside rectangle.
 - Do not repeat function calls with the same parameters
+
+Examples:
+- FUNCTION_CALL: add|5|3
+- FUNCTION_CALL: strings_to_chars_to_int|INDIA
+- FUNCTION_CALL: draw_rectangle|400|218|800|380
+- FINAL_ANSWER: [42]
 
 DO NOT include any explanations or additional text.
 Your entire response should be a single line starting with either FUNCTION_CALL: or FINAL_ANSWER:
-                """
-                print(f"System prompt created {system_prompt_1}")
-                
-                query_1 = """Your task is to call appropriate functions form in appropriate sequence to open paint and draw a rectangle, here you have to provide any random coordinates of the screen to draw rectangle in integer form. 
-                For final answer, you have to return who is the Prime minister of India in string format and add it inside the rectangle that you drawn in previous iteration."""
+
+"""
+                print("="*10, "System Prompt Start", "="*10)
+                print(system_prompt)
+                print("="*10, "System Prompt End", "="*10)
+
+                query = """You have two task,
+                  1. Find the ASCII values of characters in INDIA and then return sum of exponentials of those values. 
+                  2. Call appropriate functions form in appropriate sequence to open paint and draw a rectangle, here is a coordinates of the screen to draw rectangle: 400|218|800|380.
+                     As a final answer, you have to add the sum of exponentials of ASCII values of characters in INDIA with FINAL_ANSWER prefix inside the rectangle that you drawn in previous iteration.
+                  """
+
                 print("Starting iteration loop...")
 
                 # Use global iteration variables
@@ -155,7 +173,7 @@ Your entire response should be a single line starting with either FUNCTION_CALL:
                 while iteration < max_iterations:
                     print(f"\n--- Iteration {iteration + 1} ---")
                     if last_response is None:
-                        current_query = query_1
+                        current_query = query
                     else:
                         current_query = (
                             current_query + "\n\n" + " ".join(iteration_response)
@@ -164,7 +182,7 @@ Your entire response should be a single line starting with either FUNCTION_CALL:
 
                     # Get model's response with timeout
                     print("Preparing to generate LLM response...")
-                    prompt = f"{system_prompt_1}\n\nQuery: {current_query}"
+                    prompt = f"{system_prompt}\n\nQuery: {current_query}"
                     try:
                         response = await generate_with_timeout(client, prompt)
                         response_text = response.text.strip()
