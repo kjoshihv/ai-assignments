@@ -60,7 +60,7 @@ async def main():
         # Create a single MCP server connection
         print("Establishing connection to MCP server...")
         server_params = StdioServerParameters(
-            command="python", args=["start-with-mcp/example2.py"]
+            command="python", args=["start-with-mcp/mcpserver.py"]
         )
 
         async with stdio_client(server_params) as (read, write):
