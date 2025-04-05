@@ -2,6 +2,9 @@
 
 This project demonstrates the use of MCP tools to perform mathematical operations and automate drawing tasks in Microsoft Paint. The project includes functionalities to open Paint, draw rectangles, and add text inside them. It also integrates LLM (Large Language Model) capabilities to perform iterative mathematical calculations and add the final result of these calculations inside the rectangle drawn in Paint.
 
+## YouTube link
+https://youtu.be/8YO_zh97H74
+
 ## Features
 
 - **Mathematical Operations**:
