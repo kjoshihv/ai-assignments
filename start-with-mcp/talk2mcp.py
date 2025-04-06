@@ -159,10 +159,11 @@ Your entire response should be a single line starting with either FUNCTION_CALL:
                 print(system_prompt)
                 print("="*10, "System Prompt End", "="*10)
 
-                query = """You have two task,
+                query = """You have two tasks,
                   1. Find the ASCII values of characters in INDIA and then return sum of exponentials of those values. 
-                  2. Call appropriate functions form in appropriate sequence to open paint and draw a rectangle, here is a coordinates of the screen to draw rectangle: 400|218|800|380.
+                  2. Call appropriate functions form in appropriate sequence to open paint and draw a rectangle, here is a coordinates of the screen to draw rectangle: 400|218|800|380.                  
                      As a final answer, you have to add the sum of exponentials of ASCII values of characters in INDIA with FINAL_ANSWER prefix inside the rectangle that you drawn in previous iteration.
+                     Also you have to send final answer as a body with appropriate subject to an email to recipient example@example.com.
                   """
 
                 print("Starting iteration loop...")

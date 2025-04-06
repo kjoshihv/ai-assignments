@@ -11,6 +11,11 @@ import win32gui
 import win32con
 import time
 from win32api import GetSystemMetrics
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import os
+from dotenv import load_dotenv
 
 # instantiate an MCP server client
 mcp = FastMCP("Calculator")
@@ -339,6 +344,36 @@ async def open_paint() -> dict:
                 )
             ]
         }
+
+@mcp.tool()
+def send_email(to_email: str, subject: str, body: str) -> str:
+    """Send an email to a Gmail address"""
+    try:
+        load_dotenv()
+        # Load email credentials from environment variables
+        gmail_user = os.getenv("GMAIL_USER")
+        gmail_password = os.getenv("GMAIL_PASSWORD")
+
+        if not gmail_user or not gmail_password:
+            raise ValueError("GMAIL_USER or GMAIL_PASSWORD not set in environment variables")
+
+        # Create the email
+        msg = MIMEMultipart()
+        msg["From"] = gmail_user
+        msg["To"] = to_email
+        msg["Subject"] = subject
+        msg.attach(MIMEText(body, "plain"))
+
+        # Connect to Gmail's SMTP server and send the email
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.starttls()
+            server.login(gmail_user, gmail_password)
+            server.sendmail(gmail_user, to_email, msg.as_string())
+
+        return f"Email sent successfully to {to_email}"
+    except Exception as e:
+        return f"Failed to send email: {str(e)}"
+
 # DEFINE RESOURCES
 
 # Add a dynamic greeting resource
