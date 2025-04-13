@@ -10,6 +10,8 @@ from rich.console import Console
 from rich.panel import Panel
 import json
 
+os.environ["PYTHONIOENCODING"] = "utf-8"
+
 console = Console()
 
 # Load environment variables from .env file
@@ -56,7 +58,7 @@ async def get_llm_response(client, prompt):
     return None
 
 async def main():
-    console.print(Panel("Chain of Thought Calculator", border_style="cyan"))
+    console.print(Panel("Chain of Thought Calculator, calculates future personal expense", border_style="cyan"))
     try:
         server_params = StdioServerParameters(
             command="python", args=["cot-demo\cot_tools.py"]
@@ -67,7 +69,6 @@ async def main():
                 await session.initialize()
 
                 # Get available tools
-                print("Requesting tool list...")
                 tools_result = await session.list_tools()
                 tools = tools_result.tools
 
@@ -105,7 +106,9 @@ async def main():
                     print(f"Error creating tools description: {e}")
                     tools_description = "Error loading tools"
 
-                print("Creating system prompt...")
+                problem = "Current monthly expense is 2,00,000 INR, inflation is 5%, calculate MONTHLY and YEARLY expense that required in year 2040? as a final answer."
+                console.print(Panel(f"Problem: {problem}", border_style="cyan"))
+
 
                 system_prompt_1 = f"""You are a mathematical reasoning agent that solves problems step by step.
 You have access to these tools:
@@ -136,25 +139,19 @@ Assistant: {{"function_call": "verify", "params": ["2050-2025", 25]}}
 User: Verified. Next step?
 Assistant: {{"function_call": "calculate", "param": "200000 * (1+0.0565) ^25"}}
 User: Result is 7,90,000. Let's verify the final answer.
-Assistant: {{"function_call": "verify", "params": ["200000 * (1+0.0565) ^25", 790000]}}
+Assistant: {{"function_call": "verify", "params": ["200000 * (1+0.0565) ^25", 7,90,000]}}
 User: Verified correct.
 Assistant: {{"final_answer": "7,90,000"}}
 
 """
 
-                console.print(Panel("System Prompt Start", border_style="blue"))
-                console.print(Panel(system_prompt_1))
-                print("="*10, "System Prompt End", "="*10)
-
-                problem = "Current monthly expense is 2,00,000 INR, inflation is 5%, calculate the expense that required in year 2040?"
-                console.print(Panel(f"Problem: {problem}", border_style="cyan"))
+                console.print(Panel(f"System Prompt:\n\n[blue]{system_prompt_1}[/blue]"))
 
                 # Initialize conversation
                 prompt = f"{system_prompt_1}\n\nSolve this problem step by step: {problem}"
                 conversation_history = []
 
                 while True:
-                    console.print("Generating LLM response")
                     response = await generate_with_timeout(client, prompt)
                     if not response or not response.text:
                         break
@@ -188,7 +185,7 @@ Assistant: {{"final_answer": "7,90,000"}}
                                 "calculate", arguments={"expression": expression}
                             )
                             if calc_result.content:
-                                value = calc_result.content[0].text
+                                value = json.loads(calc_result.content[0].text)
                                 prompt += f"\nUser: Result is {value}. Let's verify this step."
                                 conversation_history.append((expression, value))
 
@@ -196,31 +193,32 @@ Assistant: {{"final_answer": "7,90,000"}}
                             params = result.get("params", [])
                             console.print("Verifying calculation step", params[0], params[1])
                             expression, expected = params[0], params[1]
-                            await session.call_tool(
+                            verify_response = await session.call_tool(
                                 "verify",
                                 arguments={
                                     "expression": expression,
                                     "expected": expected,
                                 },
                             )
-                            prompt += "\nUser: Verified. Next step?"                        
+                            value = json.loads(verify_response.content[0].text)
+                            if value.get("is_correct", False):
+                                prompt += "\nUser: Verified. Next step?"
+                            else:
+                                prompt += "\nUser: Not verified. Please re-do the calculation."
+                            conversation_history.append((expression, expected))
                         else:
                             print(f"Unknown function call: {func_name}")
                             break
                     elif result.get("final_answer", None):
-                            # Verify the final answer against the original problem
-                            if conversation_history:
-                                final_answer = float(
-                                    result["final_answer"][0]
+                        # TODO: Check if the final answer is correct
+                        answer = json.loads(result["final_answer"])
+                        monthly = answer.get("monthly_expense_2040", None) if answer.get("monthly_expense_2040", None) else answer.get("monthly_expense", None)
+                        yearly = answer.get("yearly_expense_2040", None) if answer.get("yearly_expense_2040", None) else answer.get("yearly_expense", None)
+                        console.print(
+                                    f"\n\n[green]Your future expense for a year 2040, mothly: {monthly}, yearly: {yearly}[/green]"
                                 )
-                                await session.call_tool(
-                                    "verify",
-                                    arguments={
-                                        "expression": problem,
-                                        "expected": final_answer,
-                                    },
-                                )
-                            break
+                        break
+                            
                     prompt += f"\nAssistant: {result}"
                 console.print("\n[green]Calculation completed![/green]")
 

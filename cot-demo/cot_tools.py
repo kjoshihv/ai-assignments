@@ -6,12 +6,13 @@ from rich.table import Table
 from rich import box
 import math
 import re
+import json
 
 console = Console()
 mcp = FastMCP("CoTCalculator")
 
 @mcp.tool()
-def show_reasoning(steps: list) -> TextContent:
+def show_reasoning(steps: list) -> dict:
     """Show the step-by-step reasoning process"""
     console.print("[blue]FUNCTION CALL:[/blue] show_reasoning()")
     for i, step in enumerate(steps, 1):
@@ -20,32 +21,23 @@ def show_reasoning(steps: list) -> TextContent:
             title=f"Step {i}",
             border_style="cyan"
         ))
-    return TextContent(
-        type="text",
-        text="Reasoning shown"
-    )
+    return {"status": "success", "message": "Reasoning shown"}
 
 @mcp.tool()
-def calculate(expression: str) -> TextContent:
+def calculate(expression: str) -> dict:
     """Calculate the result of an expression"""
     console.print("[blue]FUNCTION CALL:[/blue] calculate()")
     console.print(f"[blue]Expression:[/blue] {expression}")
     try:
         result = eval(expression)
         console.print(f"[green]Result:[/green] {result}")
-        return TextContent(
-            type="text",
-            text=str(result)
-        )
+        return {"result": result}
     except Exception as e:
         console.print(f"[red]Error:[/red] {str(e)}")
-        return TextContent(
-            type="text",
-            text=f"Error: {str(e)}"
-        )
+        return {"error": str(e)}
 
 @mcp.tool()
-def verify(expression: str, expected: float) -> TextContent:
+def verify(expression: str, expected: float) -> dict:
     """Verify if a calculation is correct"""
     console.print("[blue]FUNCTION CALL:[/blue] verify()")
     console.print(f"[blue]Verifying:[/blue] {expression} = {expected}")
@@ -54,23 +46,16 @@ def verify(expression: str, expected: float) -> TextContent:
         is_correct = abs(actual - float(expected)) < 1e-10
         
         if is_correct:
-            console.print(f"[green]✓ Correct! {expression} = {expected}[/green]")
+            console.print(f"[green]Correct! {expression} = {expected}[/green]")
         else:
-            console.print(f"[red]✗ Incorrect! {expression} should be {actual}, got {expected}[/red]")
+            console.print(f"[red]Incorrect! {expression} should be {actual}, got {expected}[/red]")
             
-        return TextContent(
-            type="text",
-            text=str(is_correct)
-        )
+        return {"is_correct": is_correct, "actual": actual, "expected": expected}
     except Exception as e:
         console.print(f"[red]Error:[/red] {str(e)}")
-        return TextContent(
-            type="text",
-            text=f"Error: {str(e)}"
-        )
+        return {"error": str(e)}
 
-@mcp.tool()
-def check_consistency(steps: list) -> TextContent:
+def check_consistency(steps: list) -> dict:
     """Check if calculation steps are consistent with each other"""
     console.print("[blue]FUNCTION CALL:[/blue] check_consistency()")
     
@@ -190,21 +175,15 @@ def check_consistency(steps: list) -> TextContent:
             border_style="green" if consistency_score > 80 else "yellow" if consistency_score > 60 else "red"
         ))
 
-        return TextContent(
-            type="text",
-            text=str({
-                "consistency_score": consistency_score,
-                "issues": issues,
-                "warnings": warnings,
-                "insights": insights
-            })
-        )
+        return {
+            "consistency_score": consistency_score,
+            "issues": issues,
+            "warnings": warnings,
+            "insights": insights
+        }
     except Exception as e:
         console.print(f"[red]Error in consistency check: {str(e)}[/red]")
-        return TextContent(
-            type="text",
-            text=f"Error: {str(e)}"
-        )
+        return {"error": str(e)}
 
 if __name__ == "__main__":
     import sys
