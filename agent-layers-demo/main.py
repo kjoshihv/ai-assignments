@@ -36,7 +36,7 @@ async def main():
                 tools_result = await session.list_tools()
                 memory.update_tools_description(tools_result.tools)
 
-                user_input = "Current monthly expense is 2,00,000 INR, inflation is 5%, calculate MONTHLY and YEARLY expense that required in year 2040? as a final answer."
+                user_input = "Current monthly expense is 2,00,000 INR, inflation is 6%, calculate MONTHLY and YEARLY expense that required in year 2040? as a final answer."
                 console.print(Panel(f"User Input: {user_input}", border_style="cyan"))
 
                 # Extract key facts using the perception layer

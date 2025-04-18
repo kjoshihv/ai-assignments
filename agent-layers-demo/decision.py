@@ -10,6 +10,9 @@ class LLMResponse(BaseModel):
     function_call: Optional[str] = None
     params: Optional[Union[List[str], str]] = None
     final_answer: Optional[str] = None
+  
+class LLMResponseList(BaseModel):
+    response_list: List[LLMResponse]
 
 async def decide_next_step(memory, client, system_prompt):
     """Decide the next step by calling the LLM with system_prompt and extracted facts."""
@@ -17,9 +20,13 @@ async def decide_next_step(memory, client, system_prompt):
     decision_output = memory.extracted_facts
     if not decision_output:
         raise ValueError("No extracted facts found in memory.")
+    
+    system_prompt = system_prompt + f"\nOUTPUT SHOULD BE STRICTLY VALID JSON FORMAT in the python list form of [{LLMResponseList.__fields__.keys()}]"
 
     # Prepare the query for the LLM
-    query = f"{system_prompt}\n\n{decision_output}"
+    query = f"{system_prompt}\n\nSolve this problem step by step: {decision_output}"
+
+    console.print(f"[yellow]Deciding next step with query: {query}[/yellow]")
 
     # Call the LLM
     response = await generate_with_timeout(client, query)
@@ -30,7 +37,11 @@ async def decide_next_step(memory, client, system_prompt):
     try:
         cleaned_response = remove_markdown(response.text.strip()) 
         console.print(f"Decision raw output {cleaned_response}, output type: {type(cleaned_response)}")
-        decision_output = LLMResponse.model_validate_json(cleaned_response)
+        valid_list = LLMResponseList.model_validate_json(cleaned_response)
+        console.print(f"Type of list {type(valid_list)}, value: {valid_list.response_list}")
+        for item in valid_list.response_list:
+            console.print("Validating item as string")
+            decision_output = LLMResponse.model_validate_json(item)
         console.print(f"Validated extracted facts: {decision_output.model_dump()}")
     except ValidationError as e:
         console.print(f"[red]Validation Error: {e}[/red]")
