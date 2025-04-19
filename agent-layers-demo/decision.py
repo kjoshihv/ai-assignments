@@ -1,9 +1,14 @@
-from utils import generate_with_timeout, remove_markdown  # Import the LLM utility
+import logging  # Import logging
+from utils import generate_with_timeout, remove_markdown
 from pydantic import BaseModel, ValidationError
 from typing import List, Optional, Union
-from rich.console import Console
 
-console = Console()
+# Configure logging
+logging.basicConfig(
+    filename="application.log",
+    level=logging.INFO,
+    format="%(filename)s %(funcName)s %(asctime)s - %(levelname)s - %(message)s"
+)
 
 # Define a Pydantic model for the LLM response
 class LLMResponse(BaseModel):
@@ -21,12 +26,12 @@ async def decide_next_step(memory, client, system_prompt):
     if not decision_output:
         raise ValueError("No extracted facts found in memory.")
     
-    system_prompt = system_prompt + f"\nOUTPUT SHOULD BE STRICTLY VALID JSON FORMAT in the python list form of [{LLMResponseList.__fields__.keys()}]"
+    # system_prompt = system_prompt + f"\nRespond with EXACTLY ONE line in the form of given keys: {LLMResponse.__fields__.keys()}"
 
     # Prepare the query for the LLM
-    query = f"{system_prompt}\n\nSolve this problem step by step: {decision_output}"
+    query = f"{system_prompt}\nHere is the problem in JSON format: {decision_output}, you have to solve it STEP BY STEP only and make sure to Respond with EXACTLY ONE STEP"
 
-    console.print(f"[yellow]Deciding next step with query: {query}[/yellow]")
+    logging.info(f"Deciding next step with query: {query}")
 
     # Call the LLM
     response = await generate_with_timeout(client, query)
@@ -36,17 +41,11 @@ async def decide_next_step(memory, client, system_prompt):
     # Parse and validate the LLM response
     try:
         cleaned_response = remove_markdown(response.text.strip()) 
-        console.print(f"Decision raw output {cleaned_response}, output type: {type(cleaned_response)}")
-        valid_list = LLMResponseList.model_validate_json(cleaned_response)
-        console.print(f"Type of list {type(valid_list)}, value: {valid_list.response_list}")
-        for item in valid_list.response_list:
-            console.print("Validating item as string")
-            decision_output = LLMResponse.model_validate_json(item.model_dump_json())
-        console.print(f"Validated extracted facts: {decision_output.model_dump()}")
+        logging.info(f"Decision raw output: {cleaned_response}")
+        decision_output = LLMResponse.model_validate_json(cleaned_response)
     except ValidationError as e:
-        console.print(f"[red]Validation Error: {e}[/red]")
+        logging.error(f"Decision layer. Validation Error: {e}")
         return {"action": None, "params": None}
-    console.print("[green]Wooooo Validation for decision done[/green]")
 
     decision_out_json = decision_output.model_dump()
     # Process the validated response

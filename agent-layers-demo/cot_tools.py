@@ -2,16 +2,22 @@ from pydantic import BaseModel
 from typing import List, Union
 from mcp.server.fastmcp import FastMCP
 from mcp.types import TextContent
-from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from rich import box
 import math
 import re
 import json
+import logging  # Add logging import
 
-console = Console()
 mcp = FastMCP("CoTCalculator")
+
+# Configure logging
+logging.basicConfig(
+    filename="application.log",
+    level=logging.INFO,
+    format="%(filename)s %(funcName)s %(asctime)s - %(levelname)s - %(message)s"
+)
 
 # Pydantic models for input and output validation
 class ShowReasoningInput(BaseModel):
@@ -39,50 +45,46 @@ class VerifyOutput(BaseModel):
 @mcp.tool()
 def show_reasoning(input_data: ShowReasoningInput) -> ShowReasoningOutput:
     """Show the step-by-step reasoning process"""
-    console.print("[blue]FUNCTION CALL:[/blue] show_reasoning()")
+    logging.info("FUNCTION CALL: show_reasoning()")
     for i, step in enumerate(input_data.steps, 1):
-        console.print(Panel(
-            f"{step}",
-            title=f"Step {i}",
-            border_style="cyan"
-        ))
+        logging.info(f"Step {i}: {step}")
     return ShowReasoningOutput(status="success", message="Reasoning shown")
 
 @mcp.tool()
 def calculate(input_data: CalculateInput) -> CalculateOutput:
     """Calculate the result of an expression"""
-    console.print("[blue]FUNCTION CALL:[/blue] calculate()")
-    console.print(f"[blue]Expression:[/blue] {input_data.expression}")
+    logging.info("FUNCTION CALL: calculate()")
+    logging.info(f"Expression: {input_data.expression}")
     try:
         result = eval(input_data.expression)
-        console.print(f"[green]Result:[/green] {result}")
+        logging.info(f"Result: {result}")
         return CalculateOutput(result=result)
     except Exception as e:
-        console.print(f"[red]Error:[/red] {str(e)}")
+        logging.error(f"Error: {str(e)}")
         return CalculateOutput(result=str(e))
 
 @mcp.tool()
 def verify(input_data: VerifyInput) -> VerifyOutput:
     """Verify if a calculation is correct"""
-    console.print("[blue]FUNCTION CALL:[/blue] verify()")
-    console.print(f"[blue]Verifying:[/blue] {input_data.expression} = {input_data.expected}")
+    logging.info("FUNCTION CALL: verify()")
+    logging.info(f"Verifying: {input_data.expression} = {input_data.expected}")
     try:
         actual = float(eval(input_data.expression))
         is_correct = abs(actual - float(input_data.expected)) < 1e-10
         
         if is_correct:
-            console.print(f"[green]Correct! {input_data.expression} = {input_data.expected}[/green]")
+            logging.info(f"Correct! {input_data.expression} = {input_data.expected}")
         else:
-            console.print(f"[red]Incorrect! {input_data.expression} should be {actual}, got {input_data.expected}[/red]")
+            logging.warning(f"Incorrect! {input_data.expression} should be {actual}, got {input_data.expected}")
             
         return VerifyOutput(is_correct=is_correct, actual=actual, expected=input_data.expected)
     except Exception as e:
-        console.print(f"[red]Error:[/red] {str(e)}")
+        logging.error(f"Error: {str(e)}")
         return VerifyOutput(is_correct=False, actual=0.0, expected=input_data.expected)
 
 def check_consistency(steps: list) -> dict:
     """Check if calculation steps are consistent with each other"""
-    console.print("[blue]FUNCTION CALL:[/blue] check_consistency()")
+    logging.info("FUNCTION CALL: check_consistency()")
     
     try:
         # Create a table for step analysis
@@ -161,45 +163,23 @@ def check_consistency(steps: list) -> dict:
             previous = (expression, result)
 
         # Display Analysis
-        console.print("\n[bold cyan]Consistency Analysis Report[/bold cyan]")
-        console.print(table)
-
+        logging.info("Consistency Analysis Report")
+        # Replace console.print calls with logging for issues, warnings, and insights
         if issues:
-            console.print(Panel(
-                "\n".join(f"[red]• {issue}[/red]" for issue in issues),
-                title="Critical Issues",
-                border_style="red"
-            ))
+            logging.error("Critical Issues:\n" + "\n".join(issues))
 
         if warnings:
-            console.print(Panel(
-                "\n".join(f"[yellow]• {warning}[/yellow]" for warning in warnings),
-                title="Warnings",
-                border_style="yellow"
-            ))
+            logging.warning("Warnings:\n" + "\n".join(warnings))
 
         if insights:
-            console.print(Panel(
-                "\n".join(f"[blue]• {insight}[/blue]" for insight in insights),
-                title="Analysis Insights",
-                border_style="blue"
-            ))
+            logging.info("Insights:\n" + "\n".join(insights))
 
         # Final Consistency Score
         total_checks = len(steps) * 5  # 5 types of checks per step
         passed_checks = total_checks - (len(issues) * 2 + len(warnings))
         consistency_score = (passed_checks / total_checks) * 100
 
-        console.print(Panel(
-            f"[bold]Consistency Score: {consistency_score:.1f}%[/bold]\n" +
-            f"Passed Checks: {passed_checks}/{total_checks}\n" +
-            f"Critical Issues: {len(issues)}\n" +
-            f"Warnings: {len(warnings)}\n" +
-            f"Insights: {len(insights)}",
-            title="Summary",
-            border_style="green" if consistency_score > 80 else "yellow" if consistency_score > 60 else "red"
-        ))
-
+        logging.info(f"Consistency Score: {consistency_score:.1f}%")
         return {
             "consistency_score": consistency_score,
             "issues": issues,
@@ -207,7 +187,7 @@ def check_consistency(steps: list) -> dict:
             "insights": insights
         }
     except Exception as e:
-        console.print(f"[red]Error in consistency check: {str(e)}[/red]")
+        logging.error(f"Error in consistency check: {str(e)}")
         return {"error": str(e)}
 
 if __name__ == "__main__":
