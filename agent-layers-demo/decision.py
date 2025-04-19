@@ -41,11 +41,12 @@ async def decide_next_step(memory, client, system_prompt):
         console.print(f"Type of list {type(valid_list)}, value: {valid_list.response_list}")
         for item in valid_list.response_list:
             console.print("Validating item as string")
-            decision_output = LLMResponse.model_validate_json(item)
+            decision_output = LLMResponse.model_validate_json(item.model_dump_json())
         console.print(f"Validated extracted facts: {decision_output.model_dump()}")
     except ValidationError as e:
         console.print(f"[red]Validation Error: {e}[/red]")
         return {"action": None, "params": None}
+    console.print("[green]Wooooo Validation for decision done[/green]")
 
     decision_out_json = decision_output.model_dump()
     # Process the validated response
