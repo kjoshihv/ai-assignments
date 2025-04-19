@@ -1,7 +1,7 @@
 import logging  # Import logging
 from utils import generate_with_timeout, remove_markdown
 from pydantic import BaseModel, ValidationError
-from typing import List, Optional, Union
+from typing import List, Optional
 
 # Configure logging
 logging.basicConfig(
@@ -13,23 +13,20 @@ logging.basicConfig(
 # Define a Pydantic model for the LLM response
 class LLMResponse(BaseModel):
     function_call: Optional[str] = None
-    params: Optional[Union[List[str], str]] = None
+    params: Optional[List[str]] = None
     final_answer: Optional[str] = None
   
 class LLMResponseList(BaseModel):
     response_list: List[LLMResponse]
 
-async def decide_next_step(memory, client, system_prompt):
+async def decide_next_step(memory, client, system_prompt, current_step):
     """Decide the next step by calling the LLM with system_prompt and extracted facts."""
     # Fetch extracted facts from memory
-    decision_output = memory.extracted_facts
-    if not decision_output:
+    user_facts = memory.extracted_facts
+    if not user_facts:
         raise ValueError("No extracted facts found in memory.")
     
-    # system_prompt = system_prompt + f"\nRespond with EXACTLY ONE line in the form of given keys: {LLMResponse.__fields__.keys()}"
-
-    # Prepare the query for the LLM
-    query = f"{system_prompt}\nHere is the problem in JSON format: {decision_output}, you have to solve it STEP BY STEP only and make sure to Respond with EXACTLY ONE STEP"
+    query = f"{system_prompt}\nSolve this problem step by step: {user_facts}\n{memory.get_decision_response()} \n {current_step}"
 
     logging.info(f"Deciding next step with query: {query}")
 
@@ -48,9 +45,4 @@ async def decide_next_step(memory, client, system_prompt):
         return {"action": None, "params": None}
 
     decision_out_json = decision_output.model_dump()
-    # Process the validated response
-    if decision_out_json.get("function_call", None):
-        return {"action": decision_out_json.get("function_call"), "params": decision_out_json.get("params")}
-    elif decision_out_json.get("final_answer", None):
-        return {"action": "final_answer", "params": decision_out_json.get("final_answer")}
-    return {"action": None, "params": None}
+    return decision_out_json

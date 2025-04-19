@@ -1,13 +1,7 @@
-from pydantic import BaseModel
-from typing import List, Union
 from mcp.server.fastmcp import FastMCP
-from mcp.types import TextContent
-from rich.panel import Panel
 from rich.table import Table
 from rich import box
-import math
 import re
-import json
 import logging  # Add logging import
 
 mcp = FastMCP("CoTCalculator")
@@ -19,68 +13,47 @@ logging.basicConfig(
     format="%(filename)s %(funcName)s %(asctime)s - %(levelname)s - %(message)s"
 )
 
-# Pydantic models for input and output validation
-class ShowReasoningInput(BaseModel):
-    steps: List[str]
-
-class ShowReasoningOutput(BaseModel):
-    status: str
-    message: str
-
-class CalculateInput(BaseModel):
-    expression: str
-
-class CalculateOutput(BaseModel):
-    result: Union[float, str]
-
-class VerifyInput(BaseModel):
-    expression: str
-    expected: float
-
-class VerifyOutput(BaseModel):
-    is_correct: bool
-    actual: float
-    expected: float
 
 @mcp.tool()
-def show_reasoning(input_data: ShowReasoningInput) -> ShowReasoningOutput:
+def show_reasoning(steps: list) -> dict:
     """Show the step-by-step reasoning process"""
-    logging.info("FUNCTION CALL: show_reasoning()")
-    for i, step in enumerate(input_data.steps, 1):
+    logging.info("[blue]FUNCTION CALL:[/blue] show_reasoning()")
+    for i, step in enumerate(steps, 1):
         logging.info(f"Step {i}: {step}")
-    return ShowReasoningOutput(status="success", message="Reasoning shown")
+    return {"status": "success", "message": "Reasoning shown"}
 
 @mcp.tool()
-def calculate(input_data: CalculateInput) -> CalculateOutput:
+def calculate(expression: str) -> dict:
     """Calculate the result of an expression"""
     logging.info("FUNCTION CALL: calculate()")
-    logging.info(f"Expression: {input_data.expression}")
+    logging.info(f"Expression:{expression}")
     try:
-        result = eval(input_data.expression)
+        result = eval(expression)
         logging.info(f"Result: {result}")
-        return CalculateOutput(result=result)
+        return {"result": result}
     except Exception as e:
-        logging.error(f"Error: {str(e)}")
-        return CalculateOutput(result=str(e))
+        logging.info(f"Error: {str(e)}")
+        return {"error": str(e)}
 
 @mcp.tool()
-def verify(input_data: VerifyInput) -> VerifyOutput:
+def verify(expression: str, expected_arg: str) -> dict:
     """Verify if a calculation is correct"""
-    logging.info("FUNCTION CALL: verify()")
-    logging.info(f"Verifying: {input_data.expression} = {input_data.expected}")
+    logging.info("[blue]FUNCTION CALL:[/blue] verify()")
+    logging.info(f"[blue]Verifying:[/blue] {expression} = {expected_arg}")
     try:
-        actual = float(eval(input_data.expression))
-        is_correct = abs(actual - float(input_data.expected)) < 1e-10
+        actual = float(eval(expression))
+        expected = float(eval(expected_arg))
+        is_correct = abs(actual - float(expected)) < 1e-10
         
         if is_correct:
-            logging.info(f"Correct! {input_data.expression} = {input_data.expected}")
+            logging.info(f"[green]Correct! {expression} = {expected}[/green]")
         else:
-            logging.warning(f"Incorrect! {input_data.expression} should be {actual}, got {input_data.expected}")
+            logging.info(f"[red]Incorrect! {expression} should be {actual}, got {expected}[/red]")
             
-        return VerifyOutput(is_correct=is_correct, actual=actual, expected=input_data.expected)
+        return {"is_correct": is_correct, "actual": actual, "expected": expected}
     except Exception as e:
-        logging.error(f"Error: {str(e)}")
-        return VerifyOutput(is_correct=False, actual=0.0, expected=input_data.expected)
+        logging.info(f"[red]Error:[/red] {str(e)}")
+        return {"error": str(e)}
 
 def check_consistency(steps: list) -> dict:
     """Check if calculation steps are consistent with each other"""

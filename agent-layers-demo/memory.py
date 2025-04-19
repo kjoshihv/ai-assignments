@@ -4,6 +4,8 @@ class Memory:
         self.conversation_history = []
         self.tools_description = ""
         self.extracted_facts = None  # Store extracted facts
+        self.perception_response = []  # Store perception responses as a list
+        self.decision_response = []  # Store decision responses as a list
 
     def update_tools_description(self, tools):
         """Update the tools description based on the available tools."""
@@ -33,3 +35,19 @@ class Memory:
     def store_extracted_facts(self, facts):
         """Store extracted facts in memory."""
         self.extracted_facts = facts
+
+    def update_perception_response(self, response):
+        """Append the perception response from the LLM."""
+        self.perception_response.append(response)
+
+    def get_perception_response(self):
+        """Retrieve all stored perception responses."""
+        return self.perception_response
+
+    def update_decision_response(self, response):
+        """Append the decision response from the LLM."""
+        self.decision_response.append({"Assistant":response})
+
+    def get_decision_response(self):
+        """Retrieve all stored decision responses."""
+        return self.decision_response

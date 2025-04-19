@@ -1,7 +1,6 @@
 import logging  # Import logging
 from pydantic import BaseModel, ValidationError
 from utils import generate_with_timeout, remove_markdown
-from typing import Optional
 
 # Configure logging
 logging.basicConfig(
