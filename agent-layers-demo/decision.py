@@ -10,12 +10,16 @@ logging.basicConfig(
     format="%(filename)s %(funcName)s %(asctime)s - %(levelname)s - %(message)s"
 )
 
+class FinalAnswer(BaseModel):
+    monthly: float
+    yearly: float
+
 # Define a Pydantic model for the LLM response
 class LLMResponse(BaseModel):
     function_call: Optional[str] = None
     params: Optional[List[str]] = None
-    final_answer: Optional[str] = None
-  
+    final_answer: Optional[FinalAnswer] = None  # Updated to dict with monthly and yearly expense
+
 class LLMResponseList(BaseModel):
     response_list: List[LLMResponse]
 
@@ -33,7 +37,7 @@ async def decide_next_step(memory, client, system_prompt, current_step):
     # Call the LLM
     response = await generate_with_timeout(client, query)
     if not response or not response.text:
-        return {"action": None, "params": None}
+        return {"status": "Error", "error_message": None}
 
     # Parse and validate the LLM response
     try:
@@ -42,7 +46,7 @@ async def decide_next_step(memory, client, system_prompt, current_step):
         decision_output = LLMResponse.model_validate_json(cleaned_response)
     except ValidationError as e:
         logging.error(f"Decision layer. Validation Error: {e}")
-        return {"action": None, "params": None}
+        return {"status": "Error", "error_message": f"Exception: {e}"}
 
     decision_out_json = decision_output.model_dump()
     return decision_out_json
