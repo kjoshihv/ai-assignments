@@ -13,9 +13,9 @@ from utils import send_email_via_gmail
 
 # Configure logging
 logging.basicConfig(
-    filename="application.log",  # Log file
+    filename="cot-application.log",  # Log file
     level=logging.INFO,  # Log level
-    format="%(filename)s %(funcName)s %(asctime)s - %(levelname)s - %(message)s"
+    format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
 os.environ["PYTHONIOENCODING"] = "utf-8"
@@ -30,7 +30,8 @@ gmail_key = os.getenv("GMAIL_USER_KEY")  # Fetch Gmail app key
 client = genai.Client(api_key=api_key)
 
 async def main():
-    logging.info("Starting Chain of Thought Calculator")
+    print("Starting Chain of Thought Calculator.. You can track progress in cot-application.log file")
+    logging.info("Starting Chain of Thought Calculator..")
     memory = Memory()
 
     try:
@@ -47,11 +48,11 @@ async def main():
                 logging.info(f"User Input: {user_prompt}")                
 
                 # Ask user if they want to receive the final answer via Gmail
-                send_email = input("Do you want to receive the final answer via Gmail? (yes/no): ").strip().lower()
+                send_email = input("Set your preference, do you want to receive the final answer via Gmail? (yes/no): ").strip().lower()
                 email_address = None
                 if send_email == "yes":
                     email_address = input("Enter your Gmail address: ").strip()
-                    logging.info(f"User opted to receive the final answer via Gmail at: {email_address}")
+                    logging.info(f"User's preference is to receive the final answer via Gmail at: {email_address}")
 
                 system_prompt = f"""You are a mathematical reasoning agent that solves problems step by step.
 You have access to these tools:
@@ -95,6 +96,7 @@ Assistant: {{"final_answer": {{"monthly": 790000, "yearly": 9480000}}}}
                 extracted_facts = await extract_facts(user_prompt, client)
                 if not extracted_facts:
                     logging.error("Failed to extract key facts. Exiting...")
+                    return
                 
                 # Store extracted facts in memory
                 memory.store_extracted_facts(extracted_facts)
@@ -105,19 +107,24 @@ Assistant: {{"final_answer": {{"monthly": 790000, "yearly": 9480000}}}}
                     # Call decide_next_step with system_prompt and memory
                     decision = await decide_next_step(memory, client, system_prompt, current_step)
                     if decision.get("status", None) == "Error":
-                        logging.error(f"Decision layer error: {decision['error_message']}")
-                        break
+                        logging.error(f"Encountered an error: {decision['error_message']}")
+                        return
+                    
+                    # update the decision response in memory
                     memory.update_decision_response(decision)
 
+                    # execute the action based on the decision
                     action_result = await execute_action(decision, session, memory)
                     if action_result.get("status", None) == "error":
-                        logging.error(f"Error in action execution: {action_result['message']}")
-                        break
+                        logging.error(f"Encountered an error: {action_result['message']}")
+                        return
                     current_step = action_result.get("message")
                     assistant_response = action_result.get("result")
 
+                    # Here you have final answer, you can send it via email or print it
                     if current_step == "final_answer":
-                        logging.info(f"Your monthly expense: {assistant_response.get('monthly')}, yearly expense: {assistant_response.get('yearly')}.")
+                        final_answer_for_user = f"Your expenses for the target year {extracted_facts.get('target_year')}, monthly: {assistant_response.get('monthly')}, yearly: {assistant_response.get('yearly')}."
+                        logging.info(final_answer_for_user)
                         if email_address:
                             # Send the final answer via Gmail
                             logging.info(f"Sending final answer to {email_address}")
@@ -126,11 +133,10 @@ Assistant: {{"final_answer": {{"monthly": 790000, "yearly": 9480000}}}}
                                 sender_password=gmail_key,
                                 recipient_email=email_address,
                                 subject="Your Calculation Result",
-                                body=f"Your monthly expense: {assistant_response.get('monthly')}, yearly expense: {assistant_response.get('yearly')}."
+                                body=final_answer_for_user
                             )
+                        print(f"\n{final_answer_for_user}\n")
                         break
-                    else:
-                        current_step += f"\nUser: {current_step}"
                     if assistant_response:
                         memory.add_to_history(current_step, assistant_response)
 

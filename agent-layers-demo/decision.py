@@ -5,9 +5,9 @@ from typing import List, Optional
 
 # Configure logging
 logging.basicConfig(
-    filename="application.log",
+    filename="cot-application.log",  # Log file
     level=logging.INFO,
-    format="%(filename)s %(funcName)s %(asctime)s - %(levelname)s - %(message)s"
+    format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
 class FinalAnswer(BaseModel):
@@ -30,9 +30,14 @@ async def decide_next_step(memory, client, system_prompt, current_step):
     if not user_facts:
         raise ValueError("No extracted facts found in memory.")
     
-    query = f"{system_prompt}\nSolve this problem step by step: {user_facts}\n{memory.get_decision_response()} \n {current_step}"
+    if memory.get_decision_response() and current_step:
+      query = f"{system_prompt}\nSolve this problem step by step: {user_facts}\n{memory.get_decision_response()}\n{current_step}"
+    elif memory.get_decision_response():
+      query = f"{system_prompt}\nSolve this problem step by step: {user_facts}\n{memory.get_decision_response()}"
+    else:
+      query = f"{system_prompt}\nSolve this problem step by step: {user_facts}"
 
-    logging.info(f"Deciding next step with query: {query}")
+    logging.info(f"Deciding next step with prompt:\n {query}\n")
 
     # Call the LLM
     response = await generate_with_timeout(client, query)
@@ -42,7 +47,7 @@ async def decide_next_step(memory, client, system_prompt, current_step):
     # Parse and validate the LLM response
     try:
         cleaned_response = remove_markdown(response.text.strip()) 
-        logging.info(f"Decision raw output: {cleaned_response}")
+        logging.info(f"\nDecision:\n{cleaned_response}")
         decision_output = LLMResponse.model_validate_json(cleaned_response)
     except ValidationError as e:
         logging.error(f"Decision layer. Validation Error: {e}")

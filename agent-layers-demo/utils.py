@@ -8,9 +8,9 @@ from email.mime.multipart import MIMEMultipart
 
 # Configure logging
 logging.basicConfig(
-    filename="application.log",
+    filename="cot-application.log",  # Log file
     level=logging.INFO,
-    format="%(filename)s %(funcName)s %(asctime)s - %(levelname)s - %(message)s"
+    format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
 async def generate_with_timeout(client, prompt, timeout=20):

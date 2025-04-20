@@ -8,9 +8,9 @@ mcp = FastMCP("CoTCalculator")
 
 # Configure logging
 logging.basicConfig(
-    filename="application.log",
+    filename="cot-application.log",  # Log file
     level=logging.INFO,
-    format="%(filename)s %(funcName)s %(asctime)s - %(levelname)s - %(message)s"
+    format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
 
