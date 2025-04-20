@@ -11,11 +11,26 @@ logging.basicConfig(
 )
 
 class FinalAnswer(BaseModel):
+    """
+    Model for the final answer containing monthly and yearly expenses.
+
+    Attributes:
+        monthly (float): The calculated monthly expense.
+        yearly (float): The calculated yearly expense.
+    """
     monthly: float
     yearly: float
 
 # Define a Pydantic model for the LLM response
 class LLMResponse(BaseModel):
+    """
+    Model for the response from the LLM.
+
+    Attributes:
+        function_call (Optional[str]): The function to call.
+        params (Optional[List[str]]): Parameters for the function call.
+        final_answer (Optional[FinalAnswer]): The final answer, if available.
+    """
     function_call: Optional[str] = None
     params: Optional[List[str]] = None
     final_answer: Optional[FinalAnswer] = None  # Updated to dict with monthly and yearly expense
@@ -24,7 +39,18 @@ class LLMResponseList(BaseModel):
     response_list: List[LLMResponse]
 
 async def decide_next_step(memory, client, system_prompt, current_step):
-    """Decide the next step by calling the LLM with system_prompt and extracted facts."""
+    """
+    Decide the next step by calling the LLM with system_prompt and extracted facts.
+
+    Args:
+        memory: The memory object containing conversation history and facts.
+        client: The LLM client instance.
+        system_prompt (str): The system prompt for the LLM.
+        current_step (str): The current step in the reasoning process.
+
+    Returns:
+        dict: The decision output from the LLM.
+    """
     # Fetch extracted facts from memory
     user_facts = memory.extracted_facts
     if not user_facts:

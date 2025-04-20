@@ -30,6 +30,14 @@ gmail_key = os.getenv("GMAIL_USER_KEY")  # Fetch Gmail app key
 client = genai.Client(api_key=api_key)
 
 async def main():
+    """
+    Main function to start the Chain of Thought Calculator.
+
+    This function initializes the memory, sets up the server parameters,
+    interacts with the user for input, and processes the query step by step
+    using the perception, decision, and action layers. It also provides an
+    option to send the final result via Gmail.
+    """
     print("Starting Chain of Thought Calculator.. You can track progress in cot-application.log file")
     logging.info("Starting Chain of Thought Calculator..")
     memory = Memory()
@@ -146,4 +154,7 @@ Assistant: {{"final_answer": {{"monthly": 790000, "yearly": 9480000}}}}
         logging.error(f"Error: {e}", exc_info=True)
 
 if __name__ == "__main__":
+    """
+    Entry point of the application. Runs the main function asynchronously.
+    """
     asyncio.run(main())

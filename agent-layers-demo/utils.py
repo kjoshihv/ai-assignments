@@ -1,6 +1,5 @@
 import asyncio
 import re
-import requests  # Import requests for Telegram API
 import logging  # Import logging
 import smtplib  # Import smtplib for sending emails
 from email.mime.text import MIMEText
@@ -14,7 +13,17 @@ logging.basicConfig(
 )
 
 async def generate_with_timeout(client, prompt, timeout=20):
-    """Generate content with a timeout."""
+    """
+    Generate content with a timeout.
+
+    Args:
+        client: The LLM client instance.
+        prompt (str): The prompt to send to the LLM.
+        timeout (int): Timeout in seconds.
+
+    Returns:
+        Response object or None if an error occurs.
+    """
     try:
         loop = asyncio.get_event_loop()
         response = await asyncio.wait_for(
@@ -33,13 +42,33 @@ async def generate_with_timeout(client, prompt, timeout=20):
         return None
 
 def remove_markdown(response):
-    """Remove code block markers from the response."""
+    """
+    Remove code block markers from the response.
+
+    Args:
+        response (str): The response string.
+
+    Returns:
+        str: Cleaned response without markdown.
+    """
     cleaned_response = re.sub(r'```(?:json|python|.*)?\n', '', response)
     cleaned_response = re.sub(r'\n```', '', cleaned_response)
     return cleaned_response
 
 def send_email_via_gmail(sender_email, sender_password, recipient_email, subject, body):
-    """Send an email via Gmail."""
+    """
+    Send an email via Gmail.
+
+    Args:
+        sender_email (str): Sender's Gmail address.
+        sender_password (str): Sender's Gmail app password.
+        recipient_email (str): Recipient's email address.
+        subject (str): Subject of the email.
+        body (str): Body of the email.
+
+    Returns:
+        None
+    """
     try:
         # Set up the MIME message
         message = MIMEMultipart()

@@ -9,7 +9,17 @@ logging.basicConfig(
 )
 
 async def execute_action(decision, session, memory):
-    """Execute the decided action based on the decision object."""
+    """
+    Execute the decided action based on the decision object.
+
+    Args:
+        decision (dict): The decision object containing the action and parameters.
+        session: The session object for interacting with tools.
+        memory: The memory object to store and retrieve information.
+
+    Returns:
+        dict: The result of the executed action.
+    """
     action = "final_answer" if decision.get("final_answer", None) else decision.get("function_call", None)
     params = decision.get("params")
     logging.info(f"Action: `{action}`, params: {params}")

@@ -9,15 +9,32 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-# Define a Pydantic model for the extracted fields
 class ExtractedFacts(BaseModel):
+    """
+    Pydantic model for validating extracted facts.
+
+    Attributes:
+        monthly_expense (int): The monthly expense provided by the user.
+        inflation_rate (float): The inflation rate provided by the user.
+        target_year (int): The target year for the calculation.
+        goal (str): The user's goal or query.
+    """
     monthly_expense: int
     inflation_rate: float
     target_year: int
     goal: str
 
 async def extract_facts(user_input, client):
-    """Call the LLM to extract key facts from the user input."""
+    """
+    Extract key facts from user input using the LLM.
+
+    Args:
+        user_input (str): The user's input query.
+        client: The LLM client instance.
+
+    Returns:
+        dict: Validated extracted facts or None if extraction fails.
+    """
     logging.info(f"Extracting facts from user input: {user_input}")
     query = f"OUTPUT SHOULD BE STRICTLY VALID JSON FORMAT in the form of {ExtractedFacts.__fields__.keys()}. Extract key facts from this input: \n{user_input}"
     try:
