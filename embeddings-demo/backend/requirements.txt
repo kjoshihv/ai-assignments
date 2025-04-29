@@ -1,7 +1,0 @@
-markitdown
-faiss-cpu
-nomic
-flask
-flask-cors
-requests
-python-dotenv 

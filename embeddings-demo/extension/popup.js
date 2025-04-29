@@ -6,13 +6,21 @@ document.addEventListener('DOMContentLoaded', function() {
     const searchButton = document.getElementById('searchButton');
     const resultsDiv = document.getElementById('results');
 
+    async function getPageContent() {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        const [{result}] = await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: () => document.documentElement.outerHTML
+        });
+        return result;
+    }
+
     async function checkTaskStatus(taskId) {
         try {
             const response = await fetch(`${AGENT_URL}/task/${taskId}`);
             const data = await response.json();
             
             if (data.status === 'processing') {
-                // Check again after 1 second
                 setTimeout(() => checkTaskStatus(taskId), 1000);
             } else {
                 resultsDiv.innerHTML = `
@@ -34,10 +42,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         
         try {
+            const htmlContent = await getPageContent();
             const response = await fetch(`${AGENT_URL}/process`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url: tab.url })
+                body: JSON.stringify({ 
+                    url: tab.url,
+                    html_content: htmlContent
+                })
             });
             
             const data = await response.json();
