@@ -1,10 +1,10 @@
 import faiss
 import numpy as np
-from nomic.embeddings import Embeddings
+# from nomic.embeddings import Embeddings
 
 class Memory:
     def __init__(self):
-        self.embeddings_model = Embeddings()
+        # self.embeddings_model = Embeddings()
         self.index = None
         self.documents = []
         self.urls = []
@@ -27,15 +27,15 @@ class Memory:
         chunks = self.create_chunks(markdown_content)
         
         # Generate embeddings
-        chunk_embeddings = self.embeddings_model.embed(chunks)
+        # chunk_embeddings = self.embeddings_model.embed(chunks)
         
         # Initialize FAISS index if not exists
         if self.index is None:
-            self.dimension = chunk_embeddings.shape[1]
+            # self.dimension = chunk_embeddings.shape[1]
             self.index = faiss.IndexFlatL2(self.dimension)
         
         # Add to FAISS index
-        self.index.add(chunk_embeddings)
+        # self.index.add(chunk_embeddings)
         
         # Store document chunks and URLs
         self.documents.extend(chunks)

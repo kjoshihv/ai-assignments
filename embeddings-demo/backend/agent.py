@@ -12,18 +12,7 @@ class Agent:
     def __init__(self):
         self.active_tasks = {}
 
-    def process_url(self, url):
-        """Process URL through MCP server"""
-        try:
-            # Send request to MCP server
-            response = requests.post(
-                f'{MCP_SERVER_URL}/process',
-                json={'url': url}
-            )
-            return response.json()
-        except Exception as e:
-            return {'error': str(e)}
-
+   
     def check_task_status(self, task_id):
         """Check task status from MCP server"""
         try:
@@ -57,17 +46,6 @@ class Agent:
 # Initialize agent
 agent = Agent()
 
-@app.route('/process', methods=['POST'])
-def process_url():
-    """Process URL endpoint"""
-    data = request.json
-    url = data.get('url')
-    
-    if not url:
-        return jsonify({'error': 'URL is required'}), 400
-    
-    result = agent.process_url(url)
-    return jsonify(result)
 
 @app.route('/task/<task_id>', methods=['GET'])
 def get_task_status(task_id):

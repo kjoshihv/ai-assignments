@@ -11,7 +11,10 @@ dependencies = [
    "flask-cors>=5.0.1",
    "markdown>=3.8",
    "markitdown>=0.1.1",
+   "mcp>=1.6.0",
    "nomic>=3.4.1",
+   "ollama>=0.4.8",
    "python-dotenv>=1.1.0",
    "requests>=2.32.3",
+   "tqdm>=4.67.1",
 ]

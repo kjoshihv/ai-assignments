@@ -1,4 +1,4 @@
-const AGENT_URL = 'http://localhost:5001';
+const APP_URL = 'http://localhost:5001';
 
 document.addEventListener('DOMContentLoaded', function() {
     const saveButton = document.getElementById('saveButton');
@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function checkTaskStatus(taskId) {
         try {
-            const response = await fetch(`${AGENT_URL}/task/${taskId}`);
+            const response = await fetch(`${APP_URL}/task/${taskId}`);
             const data = await response.json();
             
             if (data.status === 'processing') {
@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         try {
             const htmlContent = await getPageContent();
-            const response = await fetch(`${AGENT_URL}/process`, {
+            const response = await fetch(`${APP_URL}/process`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!query) return;
 
         try {
-            const response = await fetch(`${AGENT_URL}/search`, {
+            const response = await fetch(`${APP_URL}/search`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ query })
