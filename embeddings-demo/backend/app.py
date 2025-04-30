@@ -1,7 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from cognitive_layers.perception import Perception
-from cognitive_layers.memory import Memory
+from cognitive_layers.perception import extract_perception
 from markitdown import MarkItDown
 import os
 import json
@@ -12,13 +11,11 @@ from pathlib import Path
 import faiss
 import logging  # Import logging
 import ollama
+from agent import start_search
+import asyncio
 
 app = Flask(__name__)
 CORS(app)
-
-# Initialize cognitive layers
-perception = Perception()
-memory = Memory()
 
 CHUNK_SIZE = 256
 CHUNK_OVERLAP = 40
@@ -125,15 +122,16 @@ def process_url():
 def search():
     data = request.json
     query = data.get('query')
-    
+    logging.info(f"Starting search with query {query}")
     if not query:
         return jsonify({'error': 'Query is required'}), 400
-    
-    # Search in memory
-    results = memory.search(query)
+
+    result = asyncio.run(start_search(query))
+
+    logging.info(f"Received result {result}")
     
     return jsonify({
-        'results': results
+        'results': result
     })
 
 if __name__ == '__main__':

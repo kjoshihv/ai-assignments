@@ -1,50 +1,87 @@
-from typing import List, Dict
-import requests
-from bs4 import BeautifulSoup
+from typing import Dict, Any, Union
+from pydantic import BaseModel
+from mcp import ClientSession
+import ast
+import logging
 
-class Action:
-    def __init__(self):
-        self.history = []
+logging.basicConfig(
+    filename="embeddings-demo.log",  # Log file
+    level=logging.INFO,  # Log level
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
-    def execute_search(self, query: str, results: List[Dict]) -> Dict:
-        """Execute search and prepare response"""
-        if not results:
-            return {
-                'status': 'no_results',
-                'message': 'No relevant results found'
-            }
 
-        # Store in history
-        self.history.append({
-            'query': query,
-            'results': results
-        })
+class ToolCallResult(BaseModel):
+    tool_name: str
+    arguments: Dict[str, Any]
+    result: Union[str, list, dict]
+    raw_response: Any
 
-        # Prepare response
-        return {
-            'status': 'success',
-            'results': results,
-            'total_results': len(results)
-        }
 
-    def get_page_preview(self, url: str) -> Dict:
-        """Get a preview of the page content"""
-        try:
-            response = requests.get(url)
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
-            # Extract title and first paragraph
-            title = soup.title.string if soup.title else url
-            first_para = soup.find('p')
-            preview = first_para.text if first_para else ''
-            
-            return {
-                'success': True,
-                'title': title,
-                'preview': preview[:200] + '...' if len(preview) > 200 else preview
-            }
-        except Exception as e:
-            return {
-                'success': False,
-                'error': str(e)
-            } 
+def parse_function_call(response: str) -> tuple[str, Dict[str, Any]]:
+    """Parses FUNCTION_CALL string into tool name and arguments."""
+    try:
+        if not response.startswith("FUNCTION_CALL:"):
+            raise ValueError("Not a valid FUNCTION_CALL")
+
+        _, function_info = response.split(":", 1)
+        parts = [p.strip() for p in function_info.split("|")]
+        func_name, param_parts = parts[0], parts[1:]
+
+        result = {}
+        for part in param_parts:
+            if "=" not in part:
+                raise ValueError(f"Invalid param: {part}")
+            key, value = part.split("=", 1)
+
+            try:
+                parsed_value = ast.literal_eval(value)
+            except Exception:
+                parsed_value = value.strip()
+
+            # Handle nested keys
+            keys = key.split(".")
+            current = result
+            for k in keys[:-1]:
+                current = current.setdefault(k, {})
+            current[keys[-1]] = parsed_value
+
+        logging.info("parser", f"Parsed: {func_name} → {result}")
+        return func_name, result
+
+    except Exception as e:
+        logging.info("parser", f"❌ Failed to parse FUNCTION_CALL: {e}")
+        raise
+
+
+async def execute_tool(session: ClientSession, tools: list[Any], response: str) -> ToolCallResult:
+    """Executes a FUNCTION_CALL via MCP tool session."""
+    try:
+        tool_name, arguments = parse_function_call(response)
+
+        tool = next((t for t in tools if t.name == tool_name), None)
+        if not tool:
+            raise ValueError(f"Tool '{tool_name}' not found in registered tools")
+
+        logging.info("tool", f"⚙️ Calling '{tool_name}' with: {arguments}")
+        result = await session.call_tool(tool_name, arguments=arguments)
+
+        if hasattr(result, 'content'):
+            if isinstance(result.content, list):
+                out = [getattr(item, 'text', str(item)) for item in result.content]
+            else:
+                out = getattr(result.content, 'text', str(result.content))
+        else:
+            out = str(result)
+
+        logging.info("tool", f"{tool_name} result: {out}")
+        return ToolCallResult(
+            tool_name=tool_name,
+            arguments=arguments,
+            result=out,
+            raw_response=result
+        )
+
+    except Exception as e:
+        logging.info("tool", f"Execution failed for '{response}': {e}")
+        raise
