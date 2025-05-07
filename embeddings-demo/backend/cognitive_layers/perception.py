@@ -46,7 +46,7 @@ Output only the dictionary on a single line. Do NOT wrap it in ```json or other 
             contents=prompt
         )
         raw = response.text.strip()
-        logging.info("perception", f"LLM output: {raw}")
+        logging.info(f"perception, LLM output: {raw}")
 
         # Strip Markdown backticks if present
         clean = remove_markdown(raw)
@@ -55,7 +55,7 @@ Output only the dictionary on a single line. Do NOT wrap it in ```json or other 
         try:
             parsed = eval(clean)
         except Exception as e:
-            logging.info("perception", f"Failed to parse cleaned output: {e}")
+            logging.info(f"perception, Failed to parse cleaned output: {e}")
             raise
 
         # Fix common issues
@@ -65,5 +65,5 @@ Output only the dictionary on a single line. Do NOT wrap it in ```json or other 
         return PerceptionResult(user_input=user_input, **parsed)
 
     except Exception as e:
-        logging.info("perception", f"Extraction failed: {e}")
+        logging.info(f"perception, Extraction failed: {e}")
         return PerceptionResult(user_input=user_input)

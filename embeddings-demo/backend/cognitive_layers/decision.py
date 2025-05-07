@@ -51,10 +51,11 @@ Input Summary:
 - Tool hint: {perception.tool_hint or 'None'}
 
 Examples:
-- User asks: "What’s the relationship between Cricket and Sachin Tendulkar"
-  - FUNCTION_CALL: search_documents|query="relationship between Cricket and Sachin Tendulkar"
-  - [receives a detailed document]
-  - FINAL_ANSWER: [Sachin Tendulkar is widely regarded as the "God of Cricket" due to his exceptional skills, longevity, and impact on the sport in India. He is the leading run-scorer in both Test and ODI cricket, and the first to score 100 centuries in international cricket. His influence extends beyond his statistics, as he is seen as a symbol of passion, perseverance, and a national icon. ]
+- User asks: "Search a 'google' word"
+  - FUNCTION_CALL: search_documents|query="google"  
+  - [receives a URLs from document having 'google' word]
+  - FUNCTION_CALL: open_website|url=URL
+  - FINAL_ANSWER: Done
 
 
 IMPORTANT:
@@ -76,7 +77,7 @@ IMPORTANT:
             contents=prompt
         )
         raw = response.text.strip()
-        logging.info("plan", f"LLM output: {raw}")
+        logging.info(f"plan, LLM output: {raw}")
 
         for line in raw.splitlines():
             if line.strip().startswith("FUNCTION_CALL:") or line.strip().startswith("FINAL_ANSWER:"):
@@ -85,5 +86,5 @@ IMPORTANT:
         return raw.strip()
 
     except Exception as e:
-        logging.info("plan", f"Decision generation failed: {e}")
+        logging.info(f"plan, Decision generation failed: {e}")
         return "FINAL_ANSWER: [unknown]"

@@ -5,19 +5,23 @@ from mcp import types
 from PIL import Image as PILImage
 import math
 import sys
-import os
 import json
 import faiss
 import numpy as np
 from pathlib import Path
 import requests
 from markitdown import MarkItDown
-import time
-from models import AddInput, AddOutput, SqrtInput, SqrtOutput, StringsToIntsInput, StringsToIntsOutput, ExpSumInput, ExpSumOutput
 from PIL import Image as PILImage
 from tqdm import tqdm
 import hashlib
+import logging
+import webbrowser
 
+logging.basicConfig(
+    filename="embeddings-demo.log",  # Log file
+    level=logging.INFO,  # Log level
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 mcp = FastMCP("EmbeddingsDemo")
 
@@ -37,16 +41,17 @@ def chunk_text(text, size=CHUNK_SIZE, overlap=CHUNK_OVERLAP):
     for i in range(0, len(words), size - overlap):
         yield " ".join(words[i:i+size])
 
-def mcp_log(level: str, message: str) -> None:
-    """Log a message to stderr to avoid interfering with JSON communication"""
-    sys.stderr.write(f"{level}: {message}\n")
-    sys.stderr.flush()
+@mcp.tool()
+def open_website(url : str) -> None:
+    """Open website for given URL in chrome browser"""
+    chrome_path = "C:/Program Files/Google/Chrome/Application/chrome.exe %s"
+    webbrowser.get(chrome_path).open(url, new=1)
 
 @mcp.tool()
 def search_documents(query: str) -> list[str]:
     """Search for relevant content from uploaded documents."""
     # ensure_faiss_ready()
-    mcp_log("SEARCH", f"Query: {query}")
+    logging.info(f"search_document, query: {query}")
     try:
         index = faiss.read_index(str(ROOT / "faiss_index" / "index.bin"))
         metadata = json.loads((ROOT / "faiss_index" / "metadata.json").read_text())
@@ -55,7 +60,9 @@ def search_documents(query: str) -> list[str]:
         results = []
         for idx in I[0]:
             data = metadata[idx]
-            results.append(f"{data['chunk']}\n[Source: {data['doc']}, ID: {data['chunk_id']}]")
+            # results.append(f"{data['chunk']}\n[Source: {data['doc']}, ID: {data['chunk_id']}]")
+            dict_to_return = {"url":data['url']}
+            results.append(dict_to_return)
         return results
     except Exception as e:
         return [f"ERROR: Failed to search: {str(e)}"]
@@ -74,6 +81,15 @@ def create_thumbnail(image_path: str) -> Image:
     img = PILImage.open(image_path)
     img.thumbnail((100, 100))
     return Image(data=img.tobytes(), format="png")
+
+def ensure_faiss_ready():
+    from pathlib import Path
+    index_path = ROOT / "faiss_index" / "index.bin"
+    meta_path = ROOT / "faiss_index" / "metadata.json"
+    if not (index_path.exists() and meta_path.exists()):
+        logging.info("Index not found — running process_documents()...")
+    else:
+        logging.info("Index already exists. Skipping regeneration.")
 
 if __name__ == "__main__":
     import sys

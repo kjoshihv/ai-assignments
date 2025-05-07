@@ -20,7 +20,7 @@ max_steps = 3
 
 async def start_search(user_input: str):
     try:
-        print("[agent] Starting agent...")
+        logging.info("Starting agent...")
         
         server_params = StdioServerParameters(
             command="python",
@@ -33,17 +33,17 @@ async def start_search(user_input: str):
                 print("Connection established, creating session...")
                 try:
                     async with ClientSession(read, write) as session:
-                        print("[agent] Session created, initializing...")
+                        logging.info("[agent] Session created, initializing...")
  
                         try:
                             await session.initialize()
-                            print("[agent] MCP session initialized")
+                            logging.info("[agent] MCP session initialized")
 
                             tools = await session.list_tools()
-                            print("Available tools:", [t.name for t in tools.tools])
+                            # logging.info("Available tools:" [t.name for t in tools.tools])
 
                             # Get available tools
-                            print("Requesting tool list...")
+                            logging.info("Requesting tool list...")
                             tools_result = await session.list_tools()
                             tools = tools_result.tools
                             tool_descriptions = "\n".join(
@@ -51,7 +51,7 @@ async def start_search(user_input: str):
                                 for tool in tools
                             )
 
-                            logging.info("agent", f"{len(tools)} tools loaded")
+                            logging.info(f"agent: {len(tools)} tools loaded")
 
                             memory = MemoryManager()
                             session_id = f"session-{int(time.time())}"
@@ -59,24 +59,24 @@ async def start_search(user_input: str):
                             step = 0
 
                             while step < max_steps:
-                                logging.info("loop", f"Step {step + 1} started")
+                                logging.info(f"loop, Step {step + 1} started")
 
                                 perception = extract_perception(user_input)
-                                logging.info("perception", f"Intent: {perception.intent}, Tool hint: {perception.tool_hint}")
+                                logging.info(f"perception, Intent: {perception.intent}, Tool hint: {perception.tool_hint}")
 
                                 retrieved = memory.retrieve(query=user_input, top_k=3, session_filter=session_id)
-                                logging.info("memory", f"Retrieved {len(retrieved)} relevant memories")
+                                logging.info(f"memory, Retrieved {len(retrieved)} relevant memories")
 
                                 plan = generate_plan(perception, retrieved, tool_descriptions=tool_descriptions)
-                                logging.info("plan", f"Plan generated: {plan}")
+                                logging.info(f"plan, Plan generated: {plan}")
 
                                 if plan.startswith("FINAL_ANSWER:"):
-                                    logging.info("agent", f"FINAL RESULT: {plan}")
-                                    break
+                                    logging.info(f"agent, FINAL RESULT: {plan}")
+                                    return
 
                                 try:
                                     result = await execute_tool(session, tools, plan)
-                                    logging.info("tool", f"{result.tool_name} returned: {result.result}")
+                                    logging.info(f"tool, {result.tool_name} returned: {result.result}")
 
                                     memory.add(MemoryItem(
                                         text=f"Tool call: {result.tool_name} with {result.arguments}, got: {result.result}",
@@ -88,30 +88,20 @@ async def start_search(user_input: str):
                                     ))
 
                                     user_input = f"Original task: {query}\nPrevious output: {result.result}\nWhat should I do next?"
-                                    return result.result
+                                    # return result.result
 
                                 except Exception as e:
-                                    logging.info("error", f"Tool execution failed: {e}")
+                                    logging.info(f"error, Tool execution failed: {e}")
                                     break
 
                                 step += 1
                         except Exception as e:
-                            print(f"[agent] Session initialization error: {str(e)}")
+                            logging.error(f"[agent] Session initialization error: {str(e)}")
                 except Exception as e:
-                    print(f"[agent] Session creation error: {str(e)}")
+                    logging.errro(f"[agent] Session creation error: {str(e)}")
         except Exception as e:
-            print(f"[agent] Connection error: {str(e)}")
+            logging.error(f"[agent] Connection error: {str(e)}")
     except Exception as e:
-        print(f"[agent] Overall error: {str(e)}")
+        logging.error(f"[agent] Overall error: {str(e)}")
 
-    logging.info("agent", "Agent session complete.")
-
-# if __name__ == "__main__":
-#     query = input("What do you want to solve today? → ")
-#     asyncio.run(main(query))
-
-
-# Find the ASCII values of characters in INDIA and then return sum of exponentials of those values.
-# How much Anmol singh paid for his DLF apartment via Capbridge? 
-# What do you know about Don Tapscott and Anthony Williams?
-# What is the relationship between Gensol and Go-Auto?
+    logging.info("Agent session complete.")

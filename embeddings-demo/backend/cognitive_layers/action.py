@@ -20,6 +20,7 @@ class ToolCallResult(BaseModel):
 
 def parse_function_call(response: str) -> tuple[str, Dict[str, Any]]:
     """Parses FUNCTION_CALL string into tool name and arguments."""
+    logging.info("parse_function_call")
     try:
         if not response.startswith("FUNCTION_CALL:"):
             raise ValueError("Not a valid FUNCTION_CALL")
@@ -46,24 +47,26 @@ def parse_function_call(response: str) -> tuple[str, Dict[str, Any]]:
                 current = current.setdefault(k, {})
             current[keys[-1]] = parsed_value
 
-        logging.info("parser", f"Parsed: {func_name} → {result}")
+        logging.info(f"Parsed: {func_name} → {result}")
         return func_name, result
 
     except Exception as e:
-        logging.info("parser", f"❌ Failed to parse FUNCTION_CALL: {e}")
+        logging.info(f"Failed to parse FUNCTION_CALL: {e}")
         raise
 
 
 async def execute_tool(session: ClientSession, tools: list[Any], response: str) -> ToolCallResult:
     """Executes a FUNCTION_CALL via MCP tool session."""
+    logging.info(f"execute_tool {response}")
     try:
         tool_name, arguments = parse_function_call(response)
+        logging.info("After parse_function_call")
 
         tool = next((t for t in tools if t.name == tool_name), None)
         if not tool:
             raise ValueError(f"Tool '{tool_name}' not found in registered tools")
 
-        logging.info("tool", f"⚙️ Calling '{tool_name}' with: {arguments}")
+        logging.info(f"Calling '{tool_name}' with: {arguments}")
         result = await session.call_tool(tool_name, arguments=arguments)
 
         if hasattr(result, 'content'):
@@ -74,7 +77,7 @@ async def execute_tool(session: ClientSession, tools: list[Any], response: str) 
         else:
             out = str(result)
 
-        logging.info("tool", f"{tool_name} result: {out}")
+        logging.info(f"{tool_name} result: {out}")
         return ToolCallResult(
             tool_name=tool_name,
             arguments=arguments,
@@ -83,5 +86,5 @@ async def execute_tool(session: ClientSession, tools: list[Any], response: str) 
         )
 
     except Exception as e:
-        logging.info("tool", f"Execution failed for '{response}': {e}")
+        logging.info(f"Execution failed for '{response}': {e}")
         raise

@@ -94,7 +94,7 @@ def process_url():
         for i, chunk in enumerate(tqdm(chunks, desc=f"Embedding {file_name}")):
             embedding = get_embedding(chunk)
             embeddings_for_file.append(embedding)
-            new_metadata.append({"doc": file_name, "chunk": chunk})
+            new_metadata.append({"url":url, "doc": file_name, "chunk": chunk})
         if embeddings_for_file:
             if index is None:
                 dim = len(embeddings_for_file[0])
