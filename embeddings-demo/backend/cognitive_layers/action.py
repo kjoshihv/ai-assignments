@@ -22,8 +22,8 @@ def parse_function_call(response: str) -> tuple[str, Dict[str, Any]]:
     """Parses FUNCTION_CALL string into tool name and arguments."""
     logging.info("parse_function_call")
     try:
-        if not response.startswith("FUNCTION_CALL:"):
-            raise ValueError("Not a valid FUNCTION_CALL")
+        if not response.startswith("FUNCTION_CALL:") and not response.startswith("FINAL_ANSWER"):
+            raise ValueError("action, Not a valid FUNCTION_CALL")
 
         _, function_info = response.split(":", 1)
         parts = [p.strip() for p in function_info.split("|")]

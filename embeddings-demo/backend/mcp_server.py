@@ -42,10 +42,12 @@ def chunk_text(text, size=CHUNK_SIZE, overlap=CHUNK_OVERLAP):
         yield " ".join(words[i:i+size])
 
 @mcp.tool()
-def open_website(url : str) -> None:
-    """Open website for given URL in chrome browser"""
+def open_website(urls : list[str]) -> None:
+    """Open website for given list of URLs in chrome browser"""
+    logging.info(f"IN open_website {urls}")
     chrome_path = "C:/Program Files/Google/Chrome/Application/chrome.exe %s"
-    webbrowser.get(chrome_path).open(url, new=1)
+    for url in urls:
+        webbrowser.get(chrome_path).open(url, new=1)
 
 @mcp.tool()
 def search_documents(query: str) -> list[str]:
@@ -61,8 +63,8 @@ def search_documents(query: str) -> list[str]:
         for idx in I[0]:
             data = metadata[idx]
             # results.append(f"{data['chunk']}\n[Source: {data['doc']}, ID: {data['chunk_id']}]")
-            dict_to_return = {"url":data['url']}
-            results.append(dict_to_return)
+            # dict_to_return = {"url":data['url']}
+            results.append(data['url'])
         return results
     except Exception as e:
         return [f"ERROR: Failed to search: {str(e)}"]

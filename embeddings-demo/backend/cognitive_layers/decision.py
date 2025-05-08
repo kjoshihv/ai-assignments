@@ -34,8 +34,8 @@ Always follow this loop:
 1. Think step-by-step about the problem.
 2. If a tool is needed, respond using the format:
    FUNCTION_CALL: tool_name|param1=value1|param2=value2
-3. When the final answer is known, respond using:
-   FINAL_ANSWER: [your final result]
+3. As a FINAL_ANSWER you have to call the appropriate tool open URLs in browser.
+   FINAL_ANSWER: tool_name|param1=value1|param2=value2
 
 Guidelines:
 - Respond using EXACTLY ONE of the formats above per step.
@@ -51,17 +51,15 @@ Input Summary:
 - Tool hint: {perception.tool_hint or 'None'}
 
 Examples:
-- User asks: "Search a 'google' word"
-  - FUNCTION_CALL: search_documents|query="google"  
-  - [receives a URLs from document having 'google' word]
-  - FUNCTION_CALL: open_website|url=URL
-  - FINAL_ANSWER: Done
+- User asks: "Search a phrase 'what is google'". You have to follow below steps:
+  1. FUNCTION_CALL: search_documents|query="what is google"  
+    1.1 search_documents output: list of URLs from document having 'what is google' phrase
+  2. FINAL_ANSWER: open_website|urls=[URLs]
 
 
 IMPORTANT:
 - Do NOT invent tools. Use only the tools listed below.
 - If the question may relate to factual knowledge, use the 'search_documents' tool to look for the answer.
-- If the question is mathematical or needs calculation, use the appropriate math tool.
 - If the previous tool output already contains factual information, DO NOT search again. Instead, summarize the relevant facts and respond with: FINAL_ANSWER: [your answer]
 - Only repeat `search_documents` if the last result was irrelevant or empty.
 - Do NOT repeat function calls with the same parameters.

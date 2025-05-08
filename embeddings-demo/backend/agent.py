@@ -30,7 +30,6 @@ async def start_search(user_input: str):
 
         try:
             async with stdio_client(server_params) as (read, write):
-                print("Connection established, creating session...")
                 try:
                     async with ClientSession(read, write) as session:
                         logging.info("[agent] Session created, initializing...")
@@ -51,11 +50,11 @@ async def start_search(user_input: str):
                                 for tool in tools
                             )
 
-                            logging.info(f"agent: {len(tools)} tools loaded")
+                            logging.info(f"agent: {len(tools)} tools loaded. {tool_descriptions}")
 
                             memory = MemoryManager()
                             session_id = f"session-{int(time.time())}"
-                            query = user_input  # Store original intent
+                            query = user_input
                             step = 0
 
                             while step < max_steps:
@@ -69,10 +68,6 @@ async def start_search(user_input: str):
 
                                 plan = generate_plan(perception, retrieved, tool_descriptions=tool_descriptions)
                                 logging.info(f"plan, Plan generated: {plan}")
-
-                                if plan.startswith("FINAL_ANSWER:"):
-                                    logging.info(f"agent, FINAL RESULT: {plan}")
-                                    return
 
                                 try:
                                     result = await execute_tool(session, tools, plan)
@@ -89,6 +84,10 @@ async def start_search(user_input: str):
 
                                     user_input = f"Original task: {query}\nPrevious output: {result.result}\nWhat should I do next?"
                                     # return result.result
+
+                                    if plan.startswith("FINAL_ANSWER:"):
+                                        logging.info(f"agent, FINAL RESULT: {plan}")
+                                        return
 
                                 except Exception as e:
                                     logging.info(f"error, Tool execution failed: {e}")
