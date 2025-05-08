@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Document Search",
+  "version": "1.0",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "http://localhost:5001/*"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  }
+} 

@@ -1,0 +1,6 @@
+backend/.venv
+backend/cognitive_layers/__pycache__
+processed_documents
+backend/faiss_index
+backend/__pycache__
+.json
