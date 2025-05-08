@@ -65,7 +65,7 @@ def search_documents(query: str) -> list[str]:
             # results.append(f"{data['chunk']}\n[Source: {data['doc']}, ID: {data['chunk_id']}]")
             # dict_to_return = {"url":data['url']}
             results.append(data['url'])
-        return results
+        return list(set(results))
     except Exception as e:
         return [f"ERROR: Failed to search: {str(e)}"]
 

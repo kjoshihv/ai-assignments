@@ -5,6 +5,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('searchInput');
     const searchButton = document.getElementById('searchButton');
     const resultsDiv = document.getElementById('results');
+    const progressContainer = document.getElementById('progressContainer');
+
+    function showProgress() {
+        progressContainer.style.display = 'block';
+        resultsDiv.innerHTML = '';
+    }
+
+    function hideProgress() {
+        progressContainer.style.display = 'none';
+    }
 
     async function getPageContent() {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -72,6 +82,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const query = searchInput.value;
         if (!query) return;
 
+        showProgress();
+
         try {
             const response = await fetch(`${APP_URL}/search`, {
                 method: 'POST',
@@ -100,6 +112,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="result-item">
                     Error: ${error.message}
                 </div>`;
+        } finally {
+            hideProgress();
         }
     });
 }); 

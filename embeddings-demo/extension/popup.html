@@ -46,6 +46,26 @@
     .result-item a:hover {
       text-decoration: underline;
     }
+    .progress-container {
+      display: none;
+      width: 100%;
+      background-color: #f3f3f3;
+      border-radius: 4px;
+      margin: 10px 0;
+    }
+    .progress-bar {
+      width: 0%;
+      height: 20px;
+      background-color: #4CAF50;
+      border-radius: 4px;
+      transition: width 0.3s ease-in-out;
+      animation: progress 1s ease-in-out infinite;
+    }
+    @keyframes progress {
+      0% { width: 0%; }
+      50% { width: 70%; }
+      100% { width: 100%; }
+    }
   </style>
 </head>
 <body>
@@ -53,6 +73,9 @@
     <button id="saveButton">Save Current Page</button>
     <input type="text" id="searchInput" placeholder="Search...">
     <button id="searchButton">Search</button>
+    <div class="progress-container" id="progressContainer">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
     <div id="results"></div>
   </div>
   <script src="popup.js"></script>
