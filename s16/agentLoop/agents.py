@@ -7,6 +7,11 @@ from utils.json_parser import parse_llm_json
 from utils.utils import log_step, log_error
 from PIL import Image
 import os
+from datetime import datetime
+
+def info_log(message: str):
+    with open("flow_info.log", "a", encoding="utf-8") as f:
+        f.write(f"[INFO] {datetime.now().isoformat()} - {message}\n")
 
 class AgentRunner:
     def __init__(self, multi_mcp):
@@ -16,7 +21,8 @@ class AgentRunner:
         config_path = Path("config/agent_config.yaml")
         with open(config_path, "r") as f:
             self.agent_configs = yaml.safe_load(f)["agents"]
-    
+        info_log("AgentRunner initialized with agent configs")
+
     def calculate_cost(self, input_text: str, output_text: str) -> dict:
         """Calculate cost and token usage"""
         # Approximate tokens = words * 1.5
@@ -44,8 +50,9 @@ class AgentRunner:
 
     async def run_agent(self, agent_type: str, input_data: dict, image_path: Optional[str] = None) -> dict:
         """Run a specific agent with input data and optional image"""
-        
+        info_log(f"run_agent called for agent_type={agent_type}")
         if agent_type not in self.agent_configs:
+            info_log(f"Unknown agent type: {agent_type}")
             raise ValueError(f"Unknown agent type: {agent_type}")
             
         config = self.agent_configs[agent_type]
@@ -53,7 +60,9 @@ class AgentRunner:
         try:
             # 1. Load prompt template
             prompt_template = Path(config["prompt_file"]).read_text(encoding="utf-8")
-            
+            with open("prompts.log", "a", encoding="utf-8") as f:
+                f.write(f"[INFO] {datetime.now().isoformat()} - Loaded prompt template for {agent_type}\n, Prompts {prompt_template.strip()}")
+
             # 2. Get tools from specified MCP servers (if any)
             tools_text = ""
             if config.get("mcp_servers"):
@@ -84,7 +93,7 @@ class AgentRunner:
             
             # 4. Create model manager with agent's specified model
             model_manager = ModelManager(config["model"])
-            
+            info_log(f"Prompt for {agent_type} built and model_manager created")
             # 5. Generate response (with or without image)
             if image_path and os.path.exists(image_path):
                 log_step(f"🖼️ {agent_type} (with image)")
@@ -92,7 +101,7 @@ class AgentRunner:
                 response = await model_manager.generate_content([full_prompt, image])
             else:
                 response = await model_manager.generate_text(full_prompt)
-            
+            info_log(f"Model response received for {agent_type}")
             # 6. Parse JSON response dynamically
             output = parse_llm_json(response)
             # import pdb; pdb.set_trace()
@@ -109,6 +118,7 @@ class AgentRunner:
             # Add cost data to result
             output.update(cost_data)
             
+            info_log(f"Output parsed and cost calculated for {agent_type}")
             return {
                 "success": True,
                 "agent_type": agent_type,
@@ -117,6 +127,7 @@ class AgentRunner:
             
         except Exception as e:
             log_error(f"❌ {agent_type}: {str(e)}")
+            info_log(f"Exception in run_agent for {agent_type}: {str(e)}")
             return {
                 "success": False,
                 "agent_type": agent_type,

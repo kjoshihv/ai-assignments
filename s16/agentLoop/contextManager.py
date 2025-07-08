@@ -12,8 +12,13 @@ from rich.prompt import Prompt
 from rich.panel import Panel
 from rich.text import Text
 
+def info_log(message: str):
+    with open("flow_info.log", "a", encoding="utf-8") as f:
+        f.write(f"[INFO] {datetime.now().isoformat()} - {message}\n")
+
 class ExecutionContextManager:
     def __init__(self, plan_graph: dict, session_id: str = None, original_query: str = None, file_manifest: list = None, debug_mode: bool = False):
+        info_log(f"ExecutionContextManager initialized, {plan_graph}")
         # 🎯 Build NetworkX graph with ALL data
         self.plan_graph = nx.DiGraph()
         
@@ -21,7 +26,7 @@ class ExecutionContextManager:
         self.plan_graph.graph['session_id'] = session_id or str(int(time.time()))[-8:]
         self.plan_graph.graph['original_query'] = original_query
         self.plan_graph.graph['file_manifest'] = file_manifest or []
-        self.plan_graph.graph['created_at'] = datetime.utcnow().isoformat()
+        self.plan_graph.graph['created_at'] = datetime.now().isoformat()
         self.plan_graph.graph['status'] = 'running'
         self.plan_graph.graph['globals_schema'] = {}
         
@@ -84,6 +89,7 @@ class ExecutionContextManager:
         return ready
 
     def mark_running(self, step_id):
+        info_log(f"Step {step_id} marked as running")
         """Mark step as running"""
         self.plan_graph.nodes[step_id]['status'] = 'running'
         self.plan_graph.nodes[step_id]['start_time'] = datetime.utcnow().isoformat()
@@ -245,6 +251,7 @@ class ExecutionContextManager:
                 self._live_display.start()
     
     async def mark_done(self, step_id, output=None, cost=None, input_tokens=None, output_tokens=None):
+        info_log(f"Step {step_id} marked as done")
         """Mark step as completed with COMPLETE extraction logic"""
         node_data = self.plan_graph.nodes[step_id]
         agent_type = node_data.get('agent', '')
@@ -333,6 +340,7 @@ class ExecutionContextManager:
         self._auto_save()
 
     def mark_failed(self, step_id, error=None):
+        info_log(f"Step {step_id} marked as failed")
         """Mark step as failed"""
         node_data = self.plan_graph.nodes[step_id]
         node_data['status'] = 'failed'
@@ -438,14 +446,17 @@ class ExecutionContextManager:
         }
 
     def set_file_profiles(self, file_profiles):
+        info_log("File profiles set in ExecutionContextManager")
         """Store file profiles in graph attributes"""
         self.plan_graph.graph['file_profiles'] = file_profiles
 
     def set_multi_mcp(self, multi_mcp):
+        info_log("multi_mcp set in ExecutionContextManager")
         """Set multi_mcp reference for code execution"""
         self.multi_mcp = multi_mcp
 
     def _auto_save(self):
+        info_log("Auto-saving session")
         """Auto-save graph to disk"""
         if self.debug_mode:
             return
@@ -455,6 +466,7 @@ class ExecutionContextManager:
             print(f"⚠️  Auto-save failed: {e}")
 
     def _save_session(self):
+        info_log("Session saved to disk")
         """Save the NetworkX graph as session"""
         base_dir = Path("memory/session_summaries_index")
         today = datetime.now()
@@ -471,6 +483,7 @@ class ExecutionContextManager:
 
     @classmethod
     def load_session(cls, session_file: Path, debug_mode: bool = False):
+        info_log(f"Session loaded from {session_file}")
         """Load a NetworkX graph session from disk"""
         with open(session_file, 'r', encoding='utf-8') as f:
             graph_data = json.load(f)

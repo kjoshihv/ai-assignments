@@ -11,6 +11,10 @@ from rich.live import Live
 from rich.console import Console
 from datetime import datetime
 
+def info_log(message: str):
+    with open("flow_info.log", "a", encoding="utf-8") as f:
+        f.write(f"[INFO] {datetime.now().isoformat()} - {message}\n")
+
 class AgentLoop4:
     def __init__(self, multi_mcp, strategy="conservative"):
         self.multi_mcp = multi_mcp
@@ -18,9 +22,11 @@ class AgentLoop4:
         self.agent_runner = AgentRunner(multi_mcp)
 
     async def run(self, query, file_manifest, globals_schema, uploaded_files):
+        info_log("AgentLoop4.run started")
         # Phase 1: File Profiling (if files exist)
         file_profiles = {}
         if uploaded_files:
+            info_log(f"Profiling {len(uploaded_files)} uploaded files")
             file_result = await self.agent_runner.run_agent(
                 "DistillerAgent",
                 {
@@ -32,8 +38,12 @@ class AgentLoop4:
             )
             if file_result["success"]:
                 file_profiles = file_result["output"]
+                info_log("File profiling completed")
+            else:
+                info_log("File profiling failed")
 
         # Phase 2: Planning with AgentRunner
+        info_log("Starting planning phase with PlannerAgent")
         plan_result = await self.agent_runner.run_agent(
             "PlannerAgent",
             {
@@ -46,16 +56,20 @@ class AgentLoop4:
         )
 
         if not plan_result["success"]:
+            info_log(f"Planning failed: {plan_result['error']}")
             raise RuntimeError(f"Planning failed: {plan_result['error']}")
 
         # Check if plan_graph exists
         if 'plan_graph' not in plan_result['output']:
+            info_log("PlannerAgent output missing 'plan_graph' key")
             raise RuntimeError(f"PlannerAgent output missing 'plan_graph' key. Got: {list(plan_result['output'].keys())}")
         
         plan_graph = plan_result["output"]["plan_graph"]
+        info_log("Plan graph received from PlannerAgent")
 
         try:
             # Phase 3: 100% NetworkX Graph-First Execution
+            info_log("Initializing ExecutionContextManager")
             context = ExecutionContextManager(
                 plan_graph,
                 session_id=None,
@@ -71,19 +85,22 @@ class AgentLoop4:
             context.plan_graph.graph['globals_schema'].update(globals_schema)
 
             # Phase 4: Execute DAG with visualization
+            info_log("Starting DAG execution")
             await self._execute_dag(context)
 
             # Phase 5: Return the CONTEXT OBJECT, not summary
+            info_log("AgentLoop4.run completed successfully")
             return context
 
         except Exception as e:
-            print(f"❌ ERROR creating ExecutionContextManager: {e}")
+            info_log(f"❌ ERROR creating ExecutionContextManager: {e}")
             import traceback
             traceback.print_exc()
             raise
 
     async def _execute_dag(self, context):
         """Execute DAG with visualization - DEBUGGING MODE"""
+        info_log("DAG execution started")
         
         # Get plan_graph structure for visualization
         plan_graph = {
@@ -96,7 +113,8 @@ class AgentLoop4:
                 for source, target in context.plan_graph.edges()
             ]
         }
-        
+        info_log(f"Plan graph structure for visualization: {plan_graph}")
+
         # Create visualizer
         visualizer = ExecutionVisualizer(plan_graph)
         console = Console()
@@ -107,6 +125,7 @@ class AgentLoop4:
 
         while not context.all_done() and iteration < max_iterations:
             iteration += 1
+            info_log(f"DAG execution iteration {iteration}")
             
             # Show current state
             console.print(visualizer.get_layout())
@@ -132,7 +151,9 @@ class AgentLoop4:
             
             # ✅ EXECUTE AGENTS FOR REAL
             tasks = [self._execute_step(step_id, context) for step_id in ready_steps]
+            info_log(f"Executed {len(tasks)} ready steps: {ready_steps}")
             results = await asyncio.gather(*tasks, return_exceptions=True)
+            info_log(f"Results received for {len(results)} steps: {ready_steps}")
 
             # Process results
             for step_id, result in zip(ready_steps, results):
@@ -150,10 +171,12 @@ class AgentLoop4:
         console.print(visualizer.get_layout())
         
         if context.all_done():
+            info_log("All tasks in DAG completed!")
             console.print("🎉 All tasks completed!")
 
     async def _execute_step(self, step_id, context):
         """Execute a single step with call_self support"""
+        info_log(f"Executing step {step_id}")
         step_data = context.get_step_data(step_id)
         agent_type = step_data["agent"]
         
@@ -194,12 +217,14 @@ class AgentLoop4:
         # Execute first iteration
         agent_input = build_agent_input()
         result = await self.agent_runner.run_agent(agent_type, agent_input)
+        info_log(f"Step {step_id} execution result: {'success' if result['success'] else 'failure'}")
         
         if result["success"]:
             output = result["output"]
             
             # Check for call_self
             if output.get("call_self"):
+                info_log(f"Step {step_id} requested call_self (second iteration)")
                 # Handle code execution if needed
                 if context._has_executable_code(output):
                     execution_result = await context._auto_execute_code(step_id, output)
@@ -215,6 +240,7 @@ class AgentLoop4:
                 )
                 
                 second_result = await self.agent_runner.run_agent(agent_type, second_agent_input)
+                info_log(f"Step {step_id} second iteration result: {'success' if second_result['success'] else 'failure'}")
                 
                 # 💾 CRITICAL: Store iteration data in session
                 iterations_data = [
@@ -242,5 +268,6 @@ class AgentLoop4:
 
     async def _handle_failures(self, context):
         """Handle failures via mid-session replanning"""
+        info_log("Handling failures (mid-session replanning not yet implemented)")
         # TODO: Implement mid-session replanning with PlannerAgent
         log_error("Mid-session replanning not yet implemented")

@@ -8,12 +8,17 @@ from inspect import signature
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 import ast
+from datetime import datetime
 
 try:
     from mcp.client.sse import sse_client
     SSE_SUPPORTED = True
 except ImportError:
     SSE_SUPPORTED = False
+
+def info_log(message: str):
+    with open("flow_info.log", "a", encoding="utf-8") as f:
+        f.write(f"[INFO] {datetime.now().isoformat()} - {message}\n")
 
 class MCP:
     def __init__(
@@ -30,8 +35,10 @@ class MCP:
         self.session: Optional[ClientSession] = None
         self.session_context = None
         self._session_stack = []  # Track context managers
+        info_log(f"MCP instance created for script={server_script}, transport={transport}")
 
     async def ensure_session(self):
+        info_log("Ensuring MCP session")
         if self.session:
             return self.session
 
@@ -61,15 +68,18 @@ class MCP:
         return self.session
 
     async def list_tools(self):
+        info_log("Listing tools from MCP")
         session = await self.ensure_session()
         tools_result = await session.list_tools()
         return tools_result.tools
 
     async def call_tool(self, tool_name: str, arguments: dict) -> Any:
+        info_log(f"Calling tool {tool_name} with arguments {arguments}")
         session = await self.ensure_session()
         return await session.call_tool(tool_name, arguments)
 
     async def shutdown(self):
+        info_log("Shutting down MCP session")
         # ✅ Exit in reverse order (LIFO) with proper error handling
         for item_type, item in reversed(self._session_stack):
             try:
@@ -91,8 +101,10 @@ class MultiMCP:
         self.tool_map: Dict[str, Dict[str, Any]] = {}
         self.server_tools: Dict[str, List[Any]] = {}
         self.client_cache: Dict[str, MCP] = {}
+        info_log("MultiMCP initialized with server configs")
 
     async def initialize(self):
+        info_log("Initializing all MCP servers")
         for config in self.server_configs:
             try:
                 transport = config.get("transport", "stdio")
@@ -119,6 +131,7 @@ class MultiMCP:
                 log_step(f"Error initializing MCP server {config['script']}: {e}", symbol="❌")
 
     async def call_tool(self, tool_name: str, arguments: dict) -> Any:
+        info_log(f"MultiMCP calling tool {tool_name}")
         entry = self.tool_map.get(tool_name)
         if not entry:
             raise ValueError(f"Tool '{tool_name}' not found on any server.")
@@ -128,6 +141,7 @@ class MultiMCP:
         return await client.call_tool(tool_name, arguments)
 
     async def function_wrapper(self, tool_name: str, *args):
+        info_log(f"MultiMCP function_wrapper called for {tool_name}")
         if isinstance(tool_name, str) and len(args) == 0:
             stripped = tool_name.strip()
             if stripped.endswith(")") and "(" in stripped:
@@ -211,6 +225,7 @@ class MultiMCP:
         return tools
 
     async def shutdown(self):
+        info_log("Shutting down all MCP clients")
         # ✅ Properly shutdown all clients with cancellation handling
         for client in self.client_cache.values():
             try:
