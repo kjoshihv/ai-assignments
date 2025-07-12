@@ -111,19 +111,25 @@ class ExecutionContextManager:
         code_to_execute = {}
         
         if "code_variants" in output:
+            info_log(f"Krupal: code_variants found in output: {output['code_variants']}")
             for key, code in output["code_variants"].items():
                 if isinstance(code, str):
                     code_to_execute[key] = code.strip()
         
-        return code_to_execute
+        return {"code_variants":code_to_execute}
     
     async def _auto_execute_code(self, step_id, output):
         """Execute code with COMPLETE variable injection"""
+        info_log(f"Krupal: Executing code for step {step_id}, {output}")
         code_to_execute = self._extract_executable_code(output)
+
         
         if not code_to_execute:
+            info_log("Krupal: No executable code found in output")
             return {"status": "error", "error": "No executable code found"}
-        
+
+        info_log(f"Krupal: Extracted code variants to execute: {code_to_execute}")
+
         # Get node data for context
         node_data = self.plan_graph.nodes[step_id]
         reads = node_data.get("reads", [])
@@ -138,22 +144,32 @@ class ExecutionContextManager:
                 
                 # 1. Inject ALL globals_schema variables
                 for var_name, var_value in globals_schema.items():
+                    info_log(f"Krupal: Injecting global variable: {var_name} = {var_value}")
                     globals_injection += f'{var_name} = {repr(var_value)}\n'
                 
                 # 2. Inject agent's own output variables
                 for var_name, var_value in output.items():
+                    info_log(f"Krupal: Injecting output variable: {var_name} = {var_value}")
                     if var_name not in ['code_variants', 'call_self', 'cost', 'input_tokens', 'output_tokens', 'execution_result', 'execution_status', 'execution_error', 'execution_time', 'executed_variant']:
                         globals_injection += f'{var_name} = {repr(var_value)}\n'
+                        info_log(f"Krupal: Finally Injected output variable: {var_name} = {var_value}")
                 
                 # 3. Create convenience variables for reads
+                info_log(f"Krupal: Preparing reads data injection for: {reads}")
                 reads_data = {}
                 for read_key in reads:
                     if read_key in globals_schema:
                         reads_data[read_key] = globals_schema[read_key]
                 
                 globals_injection += f'reads_data = {repr(reads_data)}\n'
+                info_log(f"Krupal: Final globals injection with read data:\n{globals_injection}")
+
+                info_log(f"Krupal: Code to append in enhanced_code '{code_key}':\n{code}")
                 
-                enhanced_code = globals_injection + code
+                # enhanced_code = globals_injection + code
+                enhanced_code = {code_key:code}
+
+                info_log(f"Krupal: Enhanced code for execution:\n{enhanced_code}")
                 
                 result = await run_user_code(
                     enhanced_code,
@@ -164,6 +180,9 @@ class ExecutionContextManager:
                 if result.get("status") == "success":
                     result["executed_variant"] = code_key
                     return result
+                # result = dict()
+                # result["executed_variant"] = code_key
+                # return result
                 
             except Exception as e:
                 continue

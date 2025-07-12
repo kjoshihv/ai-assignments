@@ -21,6 +21,11 @@ SAFE_BUILTINS = {
     }
 }
 
+
+def info_log(message: str):
+    with open("flow_info.log", "a", encoding="utf-8") as f:
+        f.write(f"[INFO] {datetime.now().isoformat()} - {message}\n")
+
 def log_step(message, symbol="🔧"):
     """Simple logging with timestamp"""
     timestamp = datetime.now().strftime("%H:%M:%S")
@@ -247,6 +252,8 @@ async def run_user_code(output_data: dict, multi_mcp, session_id: str = "default
     Returns:
         Combined results from file creation and/or code execution
     """
+
+    info_log(f"Krupal: Starting user code execution for session {session_id}")
     start_time = time.perf_counter()
     
     results = {
